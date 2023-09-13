@@ -2,6 +2,7 @@
 #include <doctest.h>
 
 #include "Table.h"
+#include "FeedbackTable.h"
 #include "Variable.h"
 #include "TestVariable.h"
 #include "Helper.h"
@@ -111,6 +112,40 @@ TEST_SUITE("Table") {
     Table* table = new Table(&table_name, dimensions, table_data);
     double result = table->get();
     CHECK(result == 3.5);
+  }
+
+
+  TEST_CASE("get() on feedback table") {
+    double expected = 1.0;
+    double initial_correction = 1.0;
+
+    Variable* dummy_source = new Variable(expected);
+    v_double* dummy_anchors = new v_double();
+    dummy_anchors->push_back(1);
+
+    v_double* table_data = new v_double();
+    table_data->push_back(expected);
+
+    v_double* table_feedback_data = new v_double();
+    table_feedback_data->push_back(initial_correction);
+
+    std::string table_name = "test_feedback_table_1d";
+
+    Dimension* dimension_x = new Dimension(dummy_source, &LINEAR_INTEGRATION, dummy_anchors);
+    v_dimension *dimensions = new std::vector<Dimension*>();
+    dimensions->push_back(dimension_x);
+
+    Variable* real = new Variable(1.0);
+    Variable* current = new Variable(2.0);
+
+    FeedbackTable* table = new FeedbackTable(&table_name, dimensions, table_data, real, current, table_feedback_data, 5);
+
+    CHECK(table->get() == expected*initial_correction);
+    CHECK(table->get() == expected*initial_correction);
+    CHECK(table->get() == expected*initial_correction);
+    CHECK(table->get() == expected*initial_correction);
+
+    CHECK(table->get() == expected*table->getCorrectionTable()->getData(0));
   }
 }
 

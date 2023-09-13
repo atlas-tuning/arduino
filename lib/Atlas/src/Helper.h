@@ -9,9 +9,11 @@
 
  Table* newTable(std::string* name, v_dimension* dimensions, v_double* dataVector) {
     #if defined(ARDUINO)
-    Serial.write("Configuring table ");
-    Serial.write(name->c_str());
-    Serial.write("...\n");
+    if (name) {
+        Serial.write("Configuring table ");
+        Serial.write(name->c_str());
+        Serial.write("...\n");
+    }
     #endif
 
     Table* table = new Table(name, dimensions, dataVector);

@@ -31,7 +31,7 @@ int Table::numDimensions() {
     return this->dimensions->size();
 }
 
-double Table::getData(v_int const &coordinates) {
+int Table::getDataOffset(v_int const &coordinates) {
     int index = 0;
     int dimensions = this->dimensions->size();
 
@@ -47,7 +47,77 @@ double Table::getData(v_int const &coordinates) {
         }
     }
 
+    return index;
+}
+
+double Table::getData(int index) {
     return this->data->at(index);
+}
+
+double Table::getData(v_int const &coordinates) {
+    int index = this->getDataOffset(coordinates);
+    return this->getData(index);
+}
+
+double Table::setData(int index, double value) {
+    double old = this->data->at(index);
+    this->data->at(index) = value;
+    return old;
+}
+
+double Table::setData(v_int const &coordinates, double value) {
+    int index = this->getDataOffset(coordinates);
+    return this->setData(index, value);
+}
+
+v_int Table::getDataIndex(v_double const &coordinates) {
+    int numDimensions = this->numDimensions();
+    v_int indices;
+    indices.resize(numDimensions);
+
+    for (int dimIndex = 0; dimIndex < numDimensions; dimIndex ++) {
+        Dimension* dimension = getDimension(dimIndex);
+        v_double* anchors = dimension->getAnchors();
+        double coordinate = coordinates.at(dimIndex);
+
+        int lowIndex = -1, highIndex = -1;
+        for (int index = 0; index < anchors->size(); index++) {
+            double anchor = anchors->at(index);
+            if (anchor <= coordinate) {
+                lowIndex = index;
+                highIndex = index;
+            }
+            if (anchor == coordinate) {
+                break;
+            }
+            if (anchor > coordinate) {
+                lowIndex = index -1;
+                highIndex = index;
+                break;
+            }
+        }
+
+        // Clamp to the bounds of the table
+        lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));
+        highIndex = std::max(0, std::min((int)anchors->size() - 1, highIndex));
+        if (lowIndex == highIndex) {
+            indices[dimIndex] = highIndex;
+        } else {
+            double lowValue = anchors->at(lowIndex);
+            double highValue = anchors->at(highIndex);
+            if (lowValue == highValue) {
+                indices[dimIndex] = lowIndex;
+            } else {
+                indices[dimIndex] = highIndex;
+            }
+        }
+    }
+
+    return indices;
+}
+
+double Table::setData(v_double const &coordinates, double value) {
+    this->setData(getDataIndex(coordinates), value);
 }
 
 int calculateCornerIndex(v_int *cornerIndices) {
