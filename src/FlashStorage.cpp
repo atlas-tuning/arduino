@@ -76,8 +76,15 @@ v_output* readOutputs(int* offs, v_table* tables) {
     return outputs;
 }
 
-v_double* readData(int sz) {
+v_double* readData(int* offs, int sz) {
+    v_double* data = new v_double();
 
+    for (int i = 0; i < sz; i++) {
+        float value = EEPROM.readFloat(*offs); *offs += 4;
+        data->push_back((double) value);
+    }
+
+    return data;
 }
 
 v_table* readTables(int* offs, v_input* inputs) {
@@ -119,13 +126,13 @@ v_table* readTables(int* offs, v_input* inputs) {
                     integration = nullptr;
             }
 
-            v_double* data = readData(num_cols);
+            v_double* data = readData(offs, num_cols);
             Dimension* dimension = new Dimension(source, integration, data);
             dimensions->push_back(dimension);
         }
 
         uint32_t num_data = EEPROM.readInt(*offs); *offs += 4;
-        v_double* data = readData(num_data);
+        v_double* data = readData(offs, num_data);
 
         Table* table = new Table(name, dimensions, data);
         tables->push_back(table);
