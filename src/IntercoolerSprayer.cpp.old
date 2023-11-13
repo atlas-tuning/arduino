@@ -226,6 +226,7 @@ GPIOInput* newInput(std::string* name, int pin, int resistorMode, int type) {
  }
 
  void loop() {
+
     #if defined(DEBUG)
     Serial.write("[=======FRAME=======]\n");
     #endif

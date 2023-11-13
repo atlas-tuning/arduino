@@ -19,3 +19,5 @@ protected:
 private:
     std::string* name;
 };
+
+typedef std::vector<Input*> v_input;

@@ -41,3 +41,5 @@ private:
     v_dimension *dimensions;
     v_double *data;
 };
+
+typedef std::vector<Table*> v_table;

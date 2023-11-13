@@ -21,3 +21,5 @@ class Output {
     private:
       std::string* name;
 };
+
+typedef std::vector<Output*> v_output;
