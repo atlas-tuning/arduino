@@ -50,11 +50,30 @@ int CANBus::setup() {
 
     int res = can_driver_install(&g_config, &t_config, &f_config);
 
+    // TODO setup inputs?
+
     return res;
 }
 
 int CANBus::begin() {
     return can_start();
+}
+
+int CANBus::update() {
+    int num_recv = 0;
+    can_message_t message;
+    int res;
+
+    while ((res = can_receive(&message, pdMS_TO_TICKS(0))) == ESP_OK) {
+        // TODO handle canbus messages
+        num_recv++;
+    }
+
+    if (res < 0 && num_recv <= 0) {
+        return res;
+    } else {
+        return num_recv;
+    }
 }
 
 int CANBus::end() {

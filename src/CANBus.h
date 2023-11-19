@@ -11,10 +11,26 @@ public:
 
     std::string* getName();
 
+    /**
+     * Sets up the bus
+    */
     int setup();
-    int begin();
-    int end();
 
+    /**
+     * Starts the bus
+    */
+    int begin();
+
+    /**
+     * @returns 0 if no messages were handled, positive for number of messages 
+     *            handled, and negative on error.
+    */
+    int update();
+
+    /**
+     * Ends the bus
+    */
+    int end();
 private:
     int txPin;
     int rxPin;

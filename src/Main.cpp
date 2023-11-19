@@ -5,6 +5,7 @@
  
 #define PROGRAM_FILE "/program.bin"
 #define BUFFER_SIZE 0xF4240 
+#define DEBUG_PAUSE 500
 
 Program* program;
  
@@ -54,6 +55,14 @@ void setup() {
       #endif
     }
 
+    // Update all busses and their corresponding inputs
+    for (auto& b : *program->getBusses()) {
+        for (auto& i : *b->getInputs()) {
+            i->read();
+        }
+
+        b->update();
+    }
 
     #if defined(DEBUG)
     for (auto& t : *program->getTables()) {
@@ -81,6 +90,6 @@ void setup() {
     }
 
     #if defined(DEBUG)
-    delay(500);
+    delay(DEBUG_PAUSE);
     #endif
  }
