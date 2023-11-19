@@ -9,13 +9,15 @@
 
 #include "PermanentStorage.h"
 
-class FlashStorage: public PermanentStorage {
+class GenericStorage: public PermanentStorage {
 public:
-    FlashStorage(int size);
+    GenericStorage(int bufferSize);
 
-    void initialize();
+    virtual int readProgramData(char* buffer, int sz) = 0;
+
     Program* readProgram();
 
 private:
+    int bufferSize;
     int size;
 };

@@ -1,8 +1,10 @@
 #include "Arduino.h"
 
-#include "FlashStorage.h"
+#include "EEPROMStorage.h"
+#include "SPIFFSStorage.h"
  
-#define FLASH_MEMORY_SIZE 0x2C00 
+#define PROGRAM_FILE "/program.bin"
+#define BUFFER_SIZE 0xF4240 
 
 Program* program;
  
@@ -10,11 +12,27 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.write("Reading flash memory...\n");
-    FlashStorage* storage = new FlashStorage(FLASH_MEMORY_SIZE);
+    Serial.write("Reading program from storage...\n");
+    PermanentStorage* storage = new SPIFFSStorage(PROGRAM_FILE, BUFFER_SIZE);
     storage->initialize();
 
     program = storage->readProgram();
+
+    Serial.write("Setting up inputs...\n");
+    for (auto& i : *program->getInputs()) {
+        i->setup();
+    }
+
+    Serial.write("Setting up outputs...\n");
+    for (auto& o : *program->getOutputs()) {
+        o->setup();
+    }
+
+    Serial.write("Setting up busses...\n");
+    for (auto& b : *program->getBusses()) {
+        b->setup();
+        b->begin();
+    }
  }
 
  void loop() {

@@ -117,7 +117,7 @@ v_int Table::getDataIndex(v_double const &coordinates) {
 }
 
 double Table::setData(v_double const &coordinates, double value) {
-    this->setData(getDataIndex(coordinates), value);
+    return this->setData(getDataIndex(coordinates), value);
 }
 
 int calculateCornerIndex(v_int *cornerIndices) {
