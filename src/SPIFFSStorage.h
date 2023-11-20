@@ -11,11 +11,11 @@
 
 class SPIFFSStorage: public GenericStorage {
 public:
-    SPIFFSStorage(const char* filename, int bufferSize);
+    SPIFFSStorage(const char* filename);
 
     void initialize();
 
-    int readProgramData(char* buffer, int sz);
+    int readProgramData(char** buffer);
 
 private:
     const char* filename;

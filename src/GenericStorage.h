@@ -11,9 +11,9 @@
 
 class GenericStorage: public PermanentStorage {
 public:
-    GenericStorage(int bufferSize);
+    GenericStorage();
 
-    virtual int readProgramData(char* buffer, int sz) = 0;
+    virtual int readProgramData(char** buffer) = 0;
 
     Program* readProgram();
 

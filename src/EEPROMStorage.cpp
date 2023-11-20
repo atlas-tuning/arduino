@@ -9,7 +9,7 @@
 #include "GPIOInput.h"
 #include "GPIOOutput.h"
 
-EEPROMStorage::EEPROMStorage(int address, int size): GenericStorage(size) {
+EEPROMStorage::EEPROMStorage(int address, int size): GenericStorage() {
     this->address = address;;
     this->size = size;
 }
@@ -18,6 +18,6 @@ void EEPROMStorage::initialize() {
     EEPROM.begin(this->size);
 }
 
-int EEPROMStorage::readProgramData(char* buffer, int sz) {
-    EEPROM.readBytes(this->address, buffer, sz);
+int EEPROMStorage::readProgramData(char** buffer) {
+    EEPROM.readBytes(this->address, *buffer, this->size);
 }

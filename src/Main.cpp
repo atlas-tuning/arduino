@@ -4,7 +4,6 @@
 #include "SPIFFSStorage.h"
  
 #define PROGRAM_FILE "/program.bin"
-#define BUFFER_SIZE 0xF4240 
 #define DEBUG_PAUSE 500
 
 Program* program;
@@ -13,11 +12,16 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.write("Reading program from storage...\n");
-    PermanentStorage* storage = new SPIFFSStorage(PROGRAM_FILE, BUFFER_SIZE);
+    Serial.write("Initializing storage...\n");
+    PermanentStorage* storage = new SPIFFSStorage(PROGRAM_FILE);
     storage->initialize();
 
+    Serial.write("Reading program from storage...\n");
     program = storage->readProgram();
+    if (!program) {
+      Serial.write("Program read failed!\n");
+      abort();
+    }
 
     Serial.write("Setting up inputs...\n");
     for (auto& i : *program->getInputs()) {

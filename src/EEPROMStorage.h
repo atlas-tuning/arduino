@@ -11,11 +11,11 @@
 
 class EEPROMStorage: public GenericStorage {
 public:
-    EEPROMStorage(int address, int size);
+    EEPROMStorage(int address, int sz);
 
     void initialize();
 
-    int readProgramData(char* buffer, int sz);
+    int readProgramData(char** buffer);
 
 private:
     int size;

@@ -2,18 +2,25 @@
 
 #include <SPIFFS.h>
 
-SPIFFSStorage::SPIFFSStorage(const char* filename, int bufferSize): GenericStorage(bufferSize) {
+SPIFFSStorage::SPIFFSStorage(const char* filename): GenericStorage() {
     this->filename = filename;
 }
 
 void SPIFFSStorage::initialize() {
-    SPIFFS.begin();
+    SPIFFS.begin(true);
 }
 
-int SPIFFSStorage::readProgramData(char* buffer, int sz) {
-    fs::File file = SPIFFS.open(this->filename, "r", false);
-    if (sz < file.size()) {
-        throw "Buffer too small to read file";
+int SPIFFSStorage::readProgramData(char** buffer) {
+    Serial.write("Opening file ");
+    Serial.write(this->filename);
+    Serial.write("...\n");
+    fs::File file = SPIFFS.open(this->filename, "r", true);
+    if (!file || file.available() <= 0) {
+        return -ENODEV;
     }
-    return (int) file.readBytes(buffer, min(sz, (int) file.size()));
+
+    *buffer = new char[file.size()];
+
+    Serial.write("Reading file data...\n");
+    return (int) file.readBytes(*buffer, file.size());
 }
