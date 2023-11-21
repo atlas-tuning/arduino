@@ -5,6 +5,7 @@
  
 #define PROGRAM_FILE "/program.bin"
 #define DEBUG_PAUSE 500
+#define DEBUG 1
 
 Program* program;
  
@@ -51,10 +52,15 @@ void setup() {
 
       #if defined(DEBUG)
       Serial.write("SENS  ");
-      double i_val = i->getPrimaryValue()->get();
       Serial.write(i->getName()->c_str());
       Serial.write(": ");
-      Serial.write(std::to_string(i_val).c_str());
+      Value* value = i->getPrimaryValue();
+      if (value) {
+        double i_val = value->get();
+        Serial.write(std::to_string(i_val).c_str());
+      } else {
+        Serial.write("nullptr");
+      }
       Serial.write("\n");
       #endif
     }

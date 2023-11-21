@@ -18,9 +18,12 @@ private:
     GPIOInput* input;
 };
 
-GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type): Input(name) {
+GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref): Input(name) {
     this->pin = pin;
     this->resistorMode = resistorMode;
+    this->v_max = v_max;
+    this->v_gnd = v_gnd;
+    this->v_ref = v_ref;
     
     switch(type) {
         case GPIOINPUT_TYPE_DIGITAL:
@@ -32,18 +35,45 @@ GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type): In
         default:
             throw "Unknown GPIO input type";
     }
+
+    GPIOReader reader = this->reader;
+    GPIOInput_Value* value = new GPIOInput_Value(getName(), this);
+
+    values.push_back(std::unique_ptr<Value>(value));
 }
 
-GPIOInput::GPIOInput(int pin, int resistorMode, int type): GPIOInput::GPIOInput(nullptr, pin, resistorMode, type) {
+GPIOInput::GPIOInput(int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref) 
+    : GPIOInput::GPIOInput(nullptr, pin, resistorMode, type, v_max, v_gnd, v_ref) {
 }
 
 int GPIOInput::read() {
-    this->last = this->reader(this->pin);
+    double value = reader(pin);
+    value *= v_max; // scale to v_max value
+
+    if (v_ref) {
+        double v_ref_value = v_ref->get();
+        value *= (v_ref_value / v_max);
+
+        if (value > v_max) {
+            value = v_max;
+        }
+    }
+
+    if (v_gnd) {
+        double v_gnd_value = v_gnd->get();
+        value -= v_gnd_value;
+
+        if (value < 0) {
+            value = 0;
+        }
+    }
+
+    last = value;
     return 1;
 }
 
 double GPIOInput::get() {
-    return this->last;
+    return last;
 }
 
 int GPIOInput::setup() {
@@ -62,15 +92,13 @@ int GPIOInput::setup() {
             mode = INPUT_PULLUP;
             break;
         default:
-            throw "Unknown resistor mode";
+            Serial.write("Invalid resistor mode: ");
+            Serial.write(std::to_string(this->resistorMode).c_str());
+            Serial.write("\n");
+            return -EINVAL;
     }
 
-    pinMode(this->pin, mode);
-
-    GPIOReader reader = this->reader;
-    GPIOInput_Value* value = new GPIOInput_Value(this->getName(), this);
-
-    this->values.push_back(std::unique_ptr<Value>(value));
+    pinMode(pin, mode);
 
     return 1;
     #else

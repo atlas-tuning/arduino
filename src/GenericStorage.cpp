@@ -69,8 +69,10 @@ float readFloat(char* buffer, int* offs) {
     Serial.write("...\n");
     #endif
 
-    uint32_t floatData = readInt(buffer, offs);
-    float value = *(float*)(&floatData);
+    float value = *(float*)(buffer + *offs);
+    int ivalue = *(int*)(buffer + *offs);
+    *offs += 4;
+
     return value;
 }
 
@@ -138,7 +140,43 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
         int pin = readByte(buffer, offs);
         int mode = readByte(buffer, offs);
         int type = readByte(buffer, offs);
-        GPIOInput* input = new GPIOInput(name, pin, mode, type);
+        float v_max = readFloat(buffer, offs);
+        uint8_t v_gnd = readByte(buffer, offs);
+        uint8_t v_ref = readByte(buffer, offs);
+
+        #if defined(DEBUG)
+        Serial.write("Adding input ");
+        Serial.write(name->c_str());
+        Serial.write(", pin=");
+        Serial.write(std::to_string(pin).c_str());
+        Serial.write(", mode=");
+        Serial.write(std::to_string(mode).c_str());
+        Serial.write(", type=");
+        Serial.write(std::to_string(type).c_str());
+        Serial.write(", v_max=");
+        Serial.write(std::to_string(v_max).c_str());
+        Serial.write(", v_gnd=");
+        Serial.write(std::to_string(v_gnd).c_str());
+        Serial.write(", v_ref=");
+        Serial.write(std::to_string(v_ref).c_str());
+        Serial.write("...\n");
+        #endif
+
+        Value* v_gnd_input = nullptr;
+        if (v_gnd < i) {
+            v_gnd_input = inputs->at(v_gnd)->getPrimaryValue();
+        } else if (v_gnd < 0xFF) {
+            Serial.write("Referenced invalid input. There will be no ground reference on this input.\n");
+        }
+
+        Value* v_ref_input = nullptr;
+        if (v_ref < i) {
+            v_ref_input = inputs->at(v_ref)->getPrimaryValue();
+        } else if (v_ref < 0xFF) {
+            Serial.write("Referenced invalid input. There will be no voltage reference on this input.\n");
+        }
+        
+        GPIOInput* input = new GPIOInput(name, pin, mode, type, v_max, v_gnd_input, v_ref_input);
         inputs->push_back(input);
     }
 
