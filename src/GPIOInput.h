@@ -14,7 +14,7 @@ static double MAX_12 = (double)(uint32_t)0xFFF;
 
 static GPIOReader GPIO_READER_ANALOG = [](int& pin) { 
 #if defined(ARDUINO)
-    return ((double)analogRead(pin) / MAX_12);
+    return ((double)analogReadMilliVolts(pin) / (double)1000);
 #else
     throw "Arduino is not supported";
     return -1;
@@ -39,8 +39,8 @@ static GPIOReader GPIO_READER_DIGITAL = [](int& pin) {
 
 class GPIOInput : public Input {
 public:
-    GPIOInput(std::string* name, int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref);
-    GPIOInput(int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref);
+    GPIOInput(std::string* name, int pin, int resistorMode, int type, Value* v_gnd, Value* v_ref);
+    GPIOInput(int pin, int resistorMode, int type, Value* v_gnd, Value* v_ref);
 
     int setup();
 
@@ -52,7 +52,6 @@ private:
     int resistorMode;
     GPIOReader reader;
     double last;
-    float v_max;
     Value* v_gnd;
     Value* v_ref;
 };

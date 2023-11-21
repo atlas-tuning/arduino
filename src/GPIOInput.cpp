@@ -18,10 +18,9 @@ private:
     GPIOInput* input;
 };
 
-GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref): Input(name) {
+GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type, Value* v_gnd, Value* v_ref): Input(name) {
     this->pin = pin;
     this->resistorMode = resistorMode;
-    this->v_max = v_max;
     this->v_gnd = v_gnd;
     this->v_ref = v_ref;
     
@@ -42,22 +41,12 @@ GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type, flo
     values.push_back(std::unique_ptr<Value>(value));
 }
 
-GPIOInput::GPIOInput(int pin, int resistorMode, int type, float v_max, Value* v_gnd, Value* v_ref) 
-    : GPIOInput::GPIOInput(nullptr, pin, resistorMode, type, v_max, v_gnd, v_ref) {
+GPIOInput::GPIOInput(int pin, int resistorMode, int type, Value* v_gnd, Value* v_ref) 
+    : GPIOInput::GPIOInput(nullptr, pin, resistorMode, type, v_gnd, v_ref) {
 }
 
 int GPIOInput::read() {
     double value = reader(pin);
-    value *= v_max; // scale to v_max value
-
-    if (v_ref) {
-        double v_ref_value = v_ref->get();
-        value *= (v_ref_value / v_max);
-
-        if (value > v_max) {
-            value = v_max;
-        }
-    }
 
     if (v_gnd) {
         double v_gnd_value = v_gnd->get();
@@ -66,6 +55,11 @@ int GPIOInput::read() {
         if (value < 0) {
             value = 0;
         }
+    }
+
+    if (v_ref) {
+        double v_ref_value = v_ref->get();
+        value = value / v_ref_value;
     }
 
     last = value;

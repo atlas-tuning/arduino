@@ -140,7 +140,6 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
         int pin = readByte(buffer, offs);
         int mode = readByte(buffer, offs);
         int type = readByte(buffer, offs);
-        float v_max = readFloat(buffer, offs);
         uint8_t v_gnd = readByte(buffer, offs);
         uint8_t v_ref = readByte(buffer, offs);
 
@@ -153,8 +152,6 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
         Serial.write(std::to_string(mode).c_str());
         Serial.write(", type=");
         Serial.write(std::to_string(type).c_str());
-        Serial.write(", v_max=");
-        Serial.write(std::to_string(v_max).c_str());
         Serial.write(", v_gnd=");
         Serial.write(std::to_string(v_gnd).c_str());
         Serial.write(", v_ref=");
@@ -176,7 +173,7 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
             Serial.write("Referenced invalid input. There will be no voltage reference on this input.\n");
         }
         
-        GPIOInput* input = new GPIOInput(name, pin, mode, type, v_max, v_gnd_input, v_ref_input);
+        GPIOInput* input = new GPIOInput(name, pin, mode, type, v_gnd_input, v_ref_input);
         inputs->push_back(input);
     }
 
