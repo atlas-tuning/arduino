@@ -1,48 +1,13 @@
 #pragma once
 
-#if defined(ARDUINO)
-#include <Arduino.h>
-#endif
-
 #include <functional>
 #include <string>
 
 #include "Output.h"
 
-#define ANALOG_RESOLUTION 8
-
-typedef std::function<void(int& pin, double& value)> GPIOWriter;
-
-static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, double& value) { 
 #if defined(ARDUINO)
-    value = max(min(value, 1.0), 0.0);
-    analogWrite(pin, (int)(value * (2^ANALOG_RESOLUTION)));
-#else
-    throw "Arduino is not supported";
+#include <Arduino.h>
 #endif
-};
-
-static GPIOWriter GPIO_WRITER_PWM = [](int& pin, double& value) { 
-#if defined(ARDUINO)
-    value = max(min(value, 1.0), 0.0);
-    analogWrite(pin, (int)(value * (2^ANALOG_RESOLUTION)));
-#else
-    throw "Arduino is not supported";
-#endif
-};
-
-static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, double& value) { 
-#if defined(ARDUINO)
-    value = max(min(value, 1.0), 0.0);
-    if (value == 1.0) {
-        digitalWrite(pin, 1);
-    } else {
-        digitalWrite(pin, 0);
-    }
-#else
-    throw "Arduino is not supported";
-#endif
-};
 
 #define GPIOOUTPUT_RESISTOR_MODE_NONE 0x1
 #define GPIOOUTPUT_RESISTOR_MODE_PULLDOWN 0x2
@@ -53,11 +18,12 @@ static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, double& value) {
 #define GPIOOUTPUT_TYPE_PWM 0x03
 
 typedef std::function<double()> GPIOSendMethod;
+typedef std::function<void(int& pin, double& valu, double& frequency)> GPIOWriter;
 
 class GPIOOutput : public Output {
 public:
-    GPIOOutput(std::string* name, Value* value, Value* holdTime, int pin, int resistorMode, int type);
-    GPIOOutput(Value* value, Value* holdTime, int pin, int resistorMode, int type);
+    GPIOOutput(std::string* name, Value* value, Value* holdTime, Value* frequency, int pin, int resistorMode, int type);
+    GPIOOutput(Value* value, Value* holdTime, Value* frequency, int pin, int resistorMode, int type);
 
     int setup();
 
@@ -69,13 +35,18 @@ private:
 
     Value* value;
     Value* holdTime;
+    Value* frequency;
     GPIOWriter writer;
 
     GPIOSendMethod sendMethod;
     long holdBegin;
 
     void sendToHw(double& value) {
-        this->writer(this->pin, value);
+        double frequency = -1;
+        if (this->frequency) {
+            frequency = this->frequency->get();
+        }
+        this->writer(this->pin, value, frequency);
         this->sent = value;
     };
 

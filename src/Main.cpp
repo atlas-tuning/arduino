@@ -5,7 +5,6 @@
  
 #define PROGRAM_FILE "/program.bin"
 #define DEBUG_PAUSE 500
-#define DEBUG 0
 
 Program* program;
  

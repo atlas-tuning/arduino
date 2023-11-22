@@ -5,6 +5,8 @@
 #include "GPIOOutput.h"
 #include "CANBus.h"
 
+#include "Variable.h"
+
 #define VERSION 2
 
 GenericStorage::GenericStorage() {
@@ -249,6 +251,11 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
         int tableIndex = readShort(buffer, offs);
         int holdTableIndex = readShort(buffer, offs);
 
+        int frequencyTableIndex = 0xFFFF;
+        if (type == GPIOOUTPUT_TYPE_PWM) {
+            frequencyTableIndex = readShort(buffer, offs);
+        }
+
         #if defined(DEBUG)
         Serial.write("Adding output ");
         Serial.write(name->c_str());
@@ -262,6 +269,8 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
         Serial.write(std::to_string(tableIndex).c_str());
         Serial.write(", holdTable=");
         Serial.write(std::to_string(holdTableIndex).c_str());
+        Serial.write(", freqTable=");
+        Serial.write(std::to_string(frequencyTableIndex).c_str());
         Serial.write("...\n");
         #endif
 
@@ -272,16 +281,27 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
             table = nullptr;
         }
 
-        Table* holdTime;
+        Value* holdTime;
         if (holdTableIndex < 0xFFFF) {
             holdTime = tables->at(holdTableIndex);
         } else {
             holdTime = nullptr;
         }
 
+        Value* frequency;
+        if (type == GPIOOUTPUT_TYPE_PWM) {
+            if (frequencyTableIndex < 0xFFFF) {
+                frequency = tables->at(frequencyTableIndex);
+            } else {
+                uint32_t frequency_value = readInt(buffer, offs);
+                frequency = new Variable(frequency_value);
+            }
+        }
+
         GPIOOutput* output = new GPIOOutput(name,
                                             table,
-                                            holdTime, 
+                                            holdTime,
+                                            frequency,
                                             pin, mode, type);
         outputs->push_back(output);
     }
