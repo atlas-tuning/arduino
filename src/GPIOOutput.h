@@ -9,12 +9,23 @@
 
 #include "Output.h"
 
+#define ANALOG_RESOLUTION 8
+
 typedef std::function<void(int& pin, double& value)> GPIOWriter;
+
+static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, double& value) { 
+#if defined(ARDUINO)
+    value = max(min(value, 1.0), 0.0);
+    analogWrite(pin, (int)(value * (2^ANALOG_RESOLUTION)));
+#else
+    throw "Arduino is not supported";
+#endif
+};
 
 static GPIOWriter GPIO_WRITER_PWM = [](int& pin, double& value) { 
 #if defined(ARDUINO)
     value = max(min(value, 1.0), 0.0);
-    analogWrite(pin, (int)(value * 255));
+    analogWrite(pin, (int)(value * (2^ANALOG_RESOLUTION)));
 #else
     throw "Arduino is not supported";
 #endif
@@ -38,7 +49,8 @@ static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, double& value) {
 #define GPIOOUTPUT_RESISTOR_MODE_PULLUP 0x3
 
 #define GPIOOUTPUT_TYPE_DIGITAL 0x01
-#define GPIOOUTPUT_TYPE_PWM 0x02
+#define GPIOOUTPUT_TYPE_ANALOG 0x02
+#define GPIOOUTPUT_TYPE_PWM 0x03
 
 typedef std::function<double()> GPIOSendMethod;
 

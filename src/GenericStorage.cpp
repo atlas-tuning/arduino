@@ -5,7 +5,7 @@
 #include "GPIOOutput.h"
 #include "CANBus.h"
 
-#define DEBUG 1
+#define VERSION 2
 
 GenericStorage::GenericStorage() {
 }
@@ -59,7 +59,7 @@ uint32_t readInt(char* buffer, int* offs) {
     uint8_t val_c = buffer[*offs+2];
     uint8_t val_d = buffer[*offs+3];
     *offs += 4;
-    return val_d | (val_b << 8) | (val_c << 16) | (val_d << 24);
+    return val_d | (val_c << 8) | (val_b << 16) | (val_a << 24);
 }
 
 float readFloat(char* buffer, int* offs) {
@@ -190,8 +190,8 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
         for (int j = 0; j < num_dimensions; j++) {
             uint16_t sourceIndex = readShort(buffer, offs);
             Value* source;
-            if (sourceIndex |= 0x8000) {
-                uint16_t tableIndex = sourceIndex ^ 0x8000;
+            if (sourceIndex & 0x8000 == 0x8000) {
+                uint16_t tableIndex = sourceIndex & 0x7FFF;
                 source = tables->at(tableIndex);
             } else {
                 source = inputs->at(sourceIndex)->getPrimaryValue();
@@ -199,7 +199,7 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
             
             uint8_t flags = readByte(buffer, offs);
             uint8_t integrationIndex = (flags >> 6) & 0x3;
-            uint8_t num_cols = flags & 0x3FFF;
+            uint8_t num_cols = flags & 0x3F;
             Integration* integration;
             switch (integrationIndex) {
                 case 1:
@@ -223,6 +223,14 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
         uint32_t num_data = readInt(buffer, offs);
         v_double* data = readData(buffer, offs, num_data);
 
+        #if defined(DEBUG)
+        Serial.write("Adding table ");
+        Serial.write(name->c_str());
+        Serial.write(", data=");
+        Serial.write(std::to_string(num_data).c_str());
+        Serial.write("...\n");
+        #endif
+
         Table* table = new Table(name, dimensions, data);
         tables->push_back(table);
     }
@@ -234,25 +242,42 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
     uint8_t num_inputs = readByte(buffer, offs);
     for (int i = 0; i < num_inputs; i++) {
         std::string* name = readStdString(buffer, offs);
+
+        int pin = readByte(buffer, offs);
+        int mode = readByte(buffer, offs);
+        int type = readByte(buffer, offs);
         int tableIndex = readShort(buffer, offs);
-        Table* table = tables->at(tableIndex);
+        int holdTableIndex = readShort(buffer, offs);
+
+        #if defined(DEBUG)
+        Serial.write("Adding output ");
+        Serial.write(name->c_str());
+        Serial.write(", pin=");
+        Serial.write(std::to_string(pin).c_str());
+        Serial.write(", mode=");
+        Serial.write(std::to_string(mode).c_str());
+        Serial.write(", type=");
+        Serial.write(std::to_string(type).c_str());
+        Serial.write(", table=");
+        Serial.write(std::to_string(tableIndex).c_str());
+        Serial.write(", holdTable=");
+        Serial.write(std::to_string(holdTableIndex).c_str());
+        Serial.write("...\n");
+        #endif
+
+        Table* table;
         if (tableIndex < 0xFFFF) {
             table = tables->at(tableIndex);
         } else {
             table = nullptr;
         }
 
-        int holdTableIndex = readShort(buffer, offs);
         Table* holdTime;
         if (holdTableIndex < 0xFFFF) {
-            holdTime = tables->at(tableIndex);
+            holdTime = tables->at(holdTableIndex);
         } else {
             holdTime = nullptr;
         }
-
-        int pin = readByte(buffer, offs);
-        int mode = readByte(buffer, offs);
-        int type = readByte(buffer, offs);
 
         GPIOOutput* output = new GPIOOutput(name,
                                             table,
@@ -263,8 +288,6 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
 
     return *offs;
 }
-
-
 
 int readBusses(char* buffer, int* offs, v_bus* busses, Program* program) {
     uint8_t num_busses = readByte(buffer, offs);
@@ -308,10 +331,17 @@ Program* GenericStorage::readProgram() {
     Serial.write(std::to_string(read).c_str());
     Serial.write(" program bytes.\n");
 
+    int offs = 0x00;
+    short version = readShort(buffer, &offs);
+    if (version != VERSION) {
+        Serial.write("Unsupported program version ");
+        Serial.write(std::to_string(version).c_str());
+        Serial.write(".\n");
+        return nullptr;
+    }
+
     Serial.write("Reading inputs...\n");
     v_input* inputs = new v_input();
-
-    int offs = 0x00;
     readInputs(buffer, &offs, inputs);
 
     Serial.write("Reading tables...\n");

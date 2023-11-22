@@ -9,6 +9,9 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, int pin
     this->resistorMode = resistorMode;
 
     switch(type) {
+        case GPIOOUTPUT_TYPE_ANALOG:
+            this->writer = GPIO_WRITER_ANALOG;
+            break;
         case GPIOOUTPUT_TYPE_DIGITAL:
             this->writer = GPIO_WRITER_DIGITAL;
             break;
