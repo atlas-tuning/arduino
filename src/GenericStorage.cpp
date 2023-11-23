@@ -8,6 +8,7 @@
 #include "Variable.h"
 
 #define VERSION 2
+#define DEBUG 1
 
 GenericStorage::GenericStorage() {
 }
@@ -142,40 +143,65 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
         int pin = readByte(buffer, offs);
         int mode = readByte(buffer, offs);
         int type = readByte(buffer, offs);
-        uint8_t v_gnd = readByte(buffer, offs);
-        uint8_t v_ref = readByte(buffer, offs);
+    
+        Input* input;
+        if (type == GPIOINPUT_TYPE_PULSE) {
+            int edge = readByte(buffer, offs);
+            int window = readShort(buffer, offs);
 
-        #if defined(DEBUG)
-        Serial.write("Adding input ");
-        Serial.write(name->c_str());
-        Serial.write(", pin=");
-        Serial.write(std::to_string(pin).c_str());
-        Serial.write(", mode=");
-        Serial.write(std::to_string(mode).c_str());
-        Serial.write(", type=");
-        Serial.write(std::to_string(type).c_str());
-        Serial.write(", v_gnd=");
-        Serial.write(std::to_string(v_gnd).c_str());
-        Serial.write(", v_ref=");
-        Serial.write(std::to_string(v_ref).c_str());
-        Serial.write("...\n");
-        #endif
+            #if defined(DEBUG)
+            Serial.write("Adding pulse input ");
+            Serial.write(name->c_str());
+            Serial.write(", pin=");
+            Serial.write(std::to_string(pin).c_str());
+            Serial.write(", mode=");
+            Serial.write(std::to_string(mode).c_str());
+            Serial.write(", edge=");
+            Serial.write(std::to_string(edge).c_str());
+            Serial.write(", window=");
+            Serial.write(std::to_string(window).c_str());
+            Serial.write("...\n");
+            #endif
 
-        Value* v_gnd_input = nullptr;
-        if (v_gnd < i) {
-            v_gnd_input = inputs->at(v_gnd)->getPrimaryValue();
-        } else if (v_gnd < 0xFF) {
-            Serial.write("Referenced invalid input. There will be no ground reference on this input.\n");
+            input = new GPIOPulseInput(name, pin, mode, edge, window);
+        } else {
+            uint8_t v_gnd, v_ref;
+            v_gnd = readByte(buffer, offs);
+            v_ref = readByte(buffer, offs);
+
+            #if defined(DEBUG)
+            Serial.write("Adding input ");
+            Serial.write(name->c_str());
+            Serial.write(", pin=");
+            Serial.write(std::to_string(pin).c_str());
+            Serial.write(", mode=");
+            Serial.write(std::to_string(mode).c_str());
+            Serial.write(", type=");
+            Serial.write(std::to_string(type).c_str());
+            Serial.write(", v_gnd=");
+            Serial.write(std::to_string(v_gnd).c_str());
+            Serial.write(", v_ref=");
+            Serial.write(std::to_string(v_ref).c_str());
+            Serial.write("...\n");
+            #endif
+
+            Value* v_gnd_input = nullptr;
+            if (v_gnd < i) {
+                v_gnd_input = inputs->at(v_gnd)->getPrimaryValue();
+            } else if (v_gnd < 0xFF) {
+                Serial.write("Referenced invalid input. There will be no ground reference on this input.\n");
+            }
+
+            Value* v_ref_input = nullptr;
+            if (v_ref < i) {
+                v_ref_input = inputs->at(v_ref)->getPrimaryValue();
+            } else if (v_ref < 0xFF) {
+                Serial.write("Referenced invalid input. There will be no voltage reference on this input.\n");
+            }
+
+            input = new GPIOInput(name, pin, mode, type, v_gnd_input, v_ref_input);
         }
 
-        Value* v_ref_input = nullptr;
-        if (v_ref < i) {
-            v_ref_input = inputs->at(v_ref)->getPrimaryValue();
-        } else if (v_ref < 0xFF) {
-            Serial.write("Referenced invalid input. There will be no voltage reference on this input.\n");
-        }
-        
-        GPIOInput* input = new GPIOInput(name, pin, mode, type, v_gnd_input, v_ref_input);
         inputs->push_back(input);
     }
 

@@ -4,6 +4,163 @@
 
 #include "Table.h"
 
+/**
+ * Assigns a value to indices that represents the index of the Table for a given low and high index pair
+ * @param dimension the dimension to assign indices from
+ * @param dimensionIndex the index of the dimension provided in the Table
+ * @param indices the array to assign indices to
+ * @param lowIndex the "low" index within the dimension that represents the lower bound to assign against
+ * @param highIndex the "high" index within the dimension that represents the upper bound to assign against
+*/
+void assignIndices(Dimension* dimension, int dimensionIndex, v_int* indices, int lowIndex, int highIndex) {
+    v_double* anchors = dimension->getAnchors();
+    
+    // Clamp indices to the bounds of the dimension provided
+    lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));
+    highIndex = std::max(0, std::min((int)anchors->size() - 1, highIndex));
+
+    if (lowIndex == highIndex) {
+        // If the low and high indices are the same, then the answer is easy; pick either one.
+        (*indices)[dimensionIndex] = highIndex;
+    } else {
+        double lowValue = anchors->at(lowIndex);
+        double highValue = anchors->at(highIndex);
+
+        if (lowValue == highValue) {
+            // If the values stored in the anchors are the same, this is an easy answer; pick either one.
+            (*indices)[dimensionIndex] = lowIndex;
+        } else {
+            // Otherwise, pick the higher index.
+            (*indices)[dimensionIndex] = highIndex;
+        }
+    }
+}
+
+/**
+ * Finds the quantized data indices in a Table, but does so in a linear manner.
+ * This function is intended to be a reference implementation for tables and
+ * should not be used in production code as optimizations will improve performance.
+ * 
+ * One issue with this implementation is that it does not deliver a constant, or
+ * near-constant lookup time.  For values deeper in the table (to the lower or right directions),
+ * lookup time increases linearly in terms of clock cycles.
+ * 
+ * @param dimension the dimension to search
+ * @param coordinate the coordinate to search for
+ * @param lowIndex the low index to set for the given coordinate, when found in the dimension
+ * @param highIndex the high index to set for the given coordinate, when found in the dimension.
+*/
+void findDimensionIndices_linear(Dimension* dimension, double coordinate,
+                                int* lowIndex, int* highIndex) {
+    v_double* anchors = dimension->getAnchors();
+    for (int index = 0; index < anchors->size(); index++) {
+        double anchor = anchors->at(index);
+
+        if (anchor <= coordinate) {
+            *lowIndex = index;
+            *highIndex = index;
+        }
+        
+        if (anchor == coordinate) {
+            break;
+        }
+
+        if (anchor > coordinate) {
+            *lowIndex = index -1;
+            *highIndex = index;
+            break;
+        }
+    }
+}
+
+/**
+ * Finds the quantized data incies for a given Table by estimating where the data is likely
+ * to be located. This function should be faster for larger tables. When a rough estimate
+ * start location on a given dimension is decided, this function searches the dimension
+ * dimension in the direction indicated by the linear nature of the anchor vector.
+ * 
+ * There are also checks for out-of-bounds coordinates to further speed up the search. In this case,
+ * this function sets indices such that lowIndex == highIndex (0 or n-1 where n is the size of the
+ * dimension's anchor vector). In any other case, lowIndex < highIndex, where lowIndex >= 0 and
+ * highIndex <= n-1.
+ * 
+ * This function has a relatively more stable response time in terms of CPU cycles than a linear
+ * scan.
+ * 
+ * @param dimension the dimension to search
+ * @param coordinate the coordinate to search for
+ * @param lowIndex the low index to set for the given coordinate, when found in the dimension
+ * @param highIndex the high index to set for the given coordinate, when found in the dimension.
+*/
+void findDimensionIndices_estimate(Dimension* dimension, double coordinate,
+                                    int* lowIndex, int* highIndex) {
+    v_double* anchors = dimension->getAnchors();
+    if (anchors->size() == 1) {
+        *lowIndex = *highIndex = 0;
+        return;
+    }
+
+    double lowValue = anchors->front();
+    double highValue = anchors->back();
+
+    double gradient = (coordinate - lowValue) / (highValue - lowValue);
+    int lastIndex = anchors->size() - 1;
+
+    if (gradient <= 0) {
+        *lowIndex = *highIndex = 0; // clamp to beginning of dimension
+        return;
+    } else if (gradient >= 1) {
+        *lowIndex = *highIndex = lastIndex; // clamp to end of dimension
+        return;
+    }
+
+    int startIndex = (int) (gradient * lastIndex);
+    startIndex = std::max(std::min(startIndex, lastIndex), 0);
+
+    int index;
+    int searchDirection = 1;
+    int searchWidth = std::max(startIndex, lastIndex - startIndex);
+    for (int searched = 0; searched <= searchWidth; searched++) {
+        index = startIndex + (searchDirection * searched);
+        
+        if (searchDirection == -1) {
+            *lowIndex = std::max(index - 1, 0);
+            *highIndex = index;
+        } else {
+            *lowIndex = index;
+            *highIndex = std::min(index + 1, lastIndex);
+        }
+
+        double anchorLow = anchors->at(*lowIndex);
+        double anchorHigh = anchors->at(*highIndex);
+
+        if (anchorLow <= coordinate && anchorHigh >= coordinate) {
+            break;
+        } else if (anchorLow > coordinate) {
+            searchDirection = -1;
+        } else {
+            searchDirection = 1;
+        }
+    }
+}
+
+v_int findDataIndex(Table* table, v_double const &coordinates) {
+    int lowIndex = -1, highIndex = -1;
+    double coordinate;
+    Dimension* dimension;
+    v_int indices;
+
+    int numDimensions = table->numDimensions();
+    indices.resize(numDimensions);
+    for (int dimIndex = 0; dimIndex < numDimensions; dimIndex ++) {
+        dimension = table->getDimension(dimIndex);
+        coordinate = coordinates.at(dimIndex);
+        findDimensionIndices_estimate(dimension, coordinate, &lowIndex, &highIndex);
+        assignIndices(dimension, dimIndex, &indices, lowIndex, highIndex);
+    }
+    return indices;
+}
+
 Table::Table(std::string* name, v_dimension *dimensions, std::vector<double> *data): Value(name) {
     this->dimensions = dimensions;
     this->data = data;
@@ -71,49 +228,7 @@ double Table::setData(v_int const &coordinates, double value) {
 }
 
 v_int Table::getDataIndex(v_double const &coordinates) {
-    int numDimensions = this->numDimensions();
-    v_int indices;
-    indices.resize(numDimensions);
-
-    for (int dimIndex = 0; dimIndex < numDimensions; dimIndex ++) {
-        Dimension* dimension = getDimension(dimIndex);
-        v_double* anchors = dimension->getAnchors();
-        double coordinate = coordinates.at(dimIndex);
-
-        int lowIndex = -1, highIndex = -1;
-        for (int index = 0; index < anchors->size(); index++) {
-            double anchor = anchors->at(index);
-            if (anchor <= coordinate) {
-                lowIndex = index;
-                highIndex = index;
-            }
-            if (anchor == coordinate) {
-                break;
-            }
-            if (anchor > coordinate) {
-                lowIndex = index -1;
-                highIndex = index;
-                break;
-            }
-        }
-
-        // Clamp to the bounds of the table
-        lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));
-        highIndex = std::max(0, std::min((int)anchors->size() - 1, highIndex));
-        if (lowIndex == highIndex) {
-            indices[dimIndex] = highIndex;
-        } else {
-            double lowValue = anchors->at(lowIndex);
-            double highValue = anchors->at(highIndex);
-            if (lowValue == highValue) {
-                indices[dimIndex] = lowIndex;
-            } else {
-                indices[dimIndex] = highIndex;
-            }
-        }
-    }
-
-    return indices;
+    return findDataIndex(this, coordinates);
 }
 
 double Table::setData(v_double const &coordinates, double value) {
@@ -185,7 +300,7 @@ v_double Table::reduce(v_double& corners, v_double const &gradients, int dimInde
         double b = corners[i+1];
 
         if (a == b) {
-            pairs[i/2] = a;
+            pairs[i / 2] = a;
         } else {
             double g = gradients[dimIndex];
             Integration integration = *dimension->getIntegration();
@@ -215,21 +330,7 @@ double Table::integrate(v_double const &coordinates) {
         double coordinate = coordinates.at(dimIndex);
 
         int lowIndex = -1, highIndex = -1;
-        for (int index = 0; index < anchors->size(); index++) {
-            double anchor = anchors->at(index);
-            if (anchor <= coordinate) {
-                lowIndex = index;
-                highIndex = index;
-            }
-            if (anchor == coordinate) {
-                break;
-            }
-            if (anchor > coordinate) {
-                lowIndex = index -1;
-                highIndex = index;
-                break;
-            }
-        }
+        findDimensionIndices_estimate(dimension, coordinate, &lowIndex, &highIndex);
 
         // Clamp to the bounds of the table
         lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));

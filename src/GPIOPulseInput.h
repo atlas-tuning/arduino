@@ -8,6 +8,9 @@
 #include <list>
 
 #include "Input.h"
+#include "Counter.h"
+
+#define GPIOINPUT_TYPE_PULSE 0x03
 
 #define GPIOPULSEINPUT_RESISTOR_MODE_NONE 0x1
 #define GPIOPULSEINPUT_RESISTOR_MODE_PULLDOWN 0x2
@@ -19,27 +22,21 @@
 
 class GPIOPulseInput : public Input {
 public:
-    GPIOPulseInput(std::string* name, int pin, int resistorMode, int edge, 
-        void (*ISR_callback)(void), int window);
-    GPIOPulseInput(int pin, int resistorMode, int edge,
-        void (*ISR_callback)(void), int window);
+    GPIOPulseInput(std::string* name, int pin, int resistorMode, int edge, int window);
+    GPIOPulseInput(int pin, int resistorMode, int edge, int window);
 
     int setup();
+    int read();
 
     void handleInterrupt();
 
     double readFrequency();
-    double readHoldTime();
 
 private:
     int pin;
     int resistorMode;
     int edge;
 
-    v_value values;
-
-    int pulseLimit;
-    std::list<long> pulses;
-
-    void (*callback)(void);
+    long lastPulse;
+    Counter* counter;
 };

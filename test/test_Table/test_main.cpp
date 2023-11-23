@@ -115,6 +115,76 @@ TEST_SUITE("Table") {
   }
 
 
+  /**
+   * Table looks like
+   * 
+   *    X    1 1.5 1.6 1.7 4 6
+   *         _________________
+   *  Y 7   |1 2   3   4   5 6|
+   *    9.4 |3 4   5   6   7 8|
+   *    9.5 |9 1   2   3   4 5|
+   *    10  |6 7   8   9   1 2|
+   *       ------------
+   *    And the coordinates would be x=4.5, y=9.5
+   *    This puts you in between 4 and 5
+   *    With linear interpolation is 4.25.
+   * 
+  */
+  TEST_CASE("get() on long two dimensional table") {
+    double source_x = 4.5;
+    double source_y = 9.5;
+
+    v_double* dummy_anchors_x = new v_double();
+    dummy_anchors_x->push_back(1);
+    dummy_anchors_x->push_back(1.5);
+    dummy_anchors_x->push_back(1.6);
+    dummy_anchors_x->push_back(1.7);
+    dummy_anchors_x->push_back(4);
+    dummy_anchors_x->push_back(6);
+    
+    v_double* dummy_anchors_y = new v_double();
+    dummy_anchors_y->push_back(7);
+    dummy_anchors_y->push_back(9.4);
+    dummy_anchors_y->push_back(9.5);
+    dummy_anchors_y->push_back(10);
+
+    v_dimension *dimensions = new std::vector<Dimension*>();
+    dimensions->push_back(new Dimension(new Variable(source_x), &LINEAR_INTEGRATION, dummy_anchors_x));
+    dimensions->push_back(new Dimension(new Variable(source_y), &LINEAR_INTEGRATION, dummy_anchors_y));
+
+    v_double* table_data = new v_double();
+    table_data->push_back(1);
+    table_data->push_back(2);
+    table_data->push_back(3);
+    table_data->push_back(4);
+    table_data->push_back(5);
+    table_data->push_back(6);
+    table_data->push_back(3);
+    table_data->push_back(4);
+    table_data->push_back(5);
+    table_data->push_back(6);
+    table_data->push_back(7);
+    table_data->push_back(8);
+    table_data->push_back(9);
+    table_data->push_back(1);
+    table_data->push_back(2);
+    table_data->push_back(3);
+    table_data->push_back(4);
+    table_data->push_back(5);
+    table_data->push_back(6);
+    table_data->push_back(7);
+    table_data->push_back(8);
+    table_data->push_back(9);
+    table_data->push_back(1);
+    table_data->push_back(2);
+
+    std::string table_name = "test_table_2d";
+    Table* table = new Table(&table_name, dimensions, table_data);
+    double result = table->get();
+    CHECK(result == 4.25);
+  }
+
+
   TEST_CASE("get() on feedback table") {
     double expected = 1.0;
     double initial_correction = 1.0;
