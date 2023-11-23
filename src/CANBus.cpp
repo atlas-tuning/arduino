@@ -7,6 +7,7 @@ CANBus::CANBus(std::string* name, int txPin, int rxPin, int kbits) : Bus(name) {
 }
 
 int CANBus::setup() {
+    #ifdef ARDUINO
     // See: https://docs.espressif.com/projects/esp-idf/en/release-v3.3/api-reference/peripherals/can.html
     // Using macros here, for more configurability we could make structs manually.
 
@@ -53,13 +54,21 @@ int CANBus::setup() {
     // TODO setup inputs?
 
     return res;
+    #else
+    return -ENODEV;
+    #endif
 }
 
 int CANBus::begin() {
+    #ifdef ARDUINO
     return can_start();
+    #else
+    return -ENODEV;
+    #endif
 }
 
 int CANBus::update() {
+    #ifdef ARDUINO
     int num_recv = 0;
     can_message_t message;
     int res;
@@ -74,8 +83,15 @@ int CANBus::update() {
     } else {
         return num_recv;
     }
+    #else
+    return -ENODEV;
+    #endif
 }
 
 int CANBus::end() {
+    #ifdef ARDUINO
     return can_stop();
+    #else
+    return -ENODEV;
+    #endif
 }

@@ -2,8 +2,10 @@
 
 #include "Bus.h"
 
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <driver/can.h>
+#endif
 
 class CANBus : public Bus {
 public:
