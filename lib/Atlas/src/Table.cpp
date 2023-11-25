@@ -145,6 +145,66 @@ void findDimensionIndices_estimate(Dimension* dimension, double coordinate,
     }
 }
 
+/*
+ * @param dimension the dimension to search
+ * @param coordinate the coordinate to search for
+ * @param lowIndex the low index to set for the given coordinate, when found in the dimension
+ * @param highIndex the high index to set for the given coordinate, when found in the dimension.
+*/
+void findDimensionIndices_reestimate(Dimension* dimension, double coordinate,
+                                    int* lowIndex, int* highIndex) {
+    v_double* anchors = dimension->getAnchors();
+    if (anchors->size() == 1) {
+        *lowIndex = *highIndex = 0;
+        return;
+    }
+
+    int lastIndex = anchors->size() - 1;
+    int lowSearchIndex = 0;
+    int highSearchIndex = lastIndex;
+    double lowValue = anchors->at(lowSearchIndex);
+    double highValue = anchors->at(highSearchIndex);
+
+    if (lowValue >= coordinate) {
+        *lowIndex = *highIndex = 0; // clamp to beginning of dimension
+        return;
+    } else if (highValue <= coordinate) {
+        *lowIndex = *highIndex = lastIndex; // clamp to end of dimension
+        return;
+    }
+
+    double coordinate_minus_low_value = coordinate - lowValue;
+    while (true) {
+        double gradient = coordinate_minus_low_value / (highValue - lowValue);
+        int medianIndex = lowSearchIndex + (gradient * (highSearchIndex - lowSearchIndex));
+        if (medianIndex <= lowSearchIndex) {
+            medianIndex = lowSearchIndex + 1;
+        }
+        double medianValue = anchors->at(medianIndex);
+        if (medianValue == coordinate) {
+            // Easily found by direct match
+            *lowIndex = *highIndex = medianIndex;
+            return;
+        } else if (coordinate > medianValue) {
+            lowSearchIndex = medianIndex;
+            lowValue = anchors->at(lowSearchIndex);
+            coordinate_minus_low_value = coordinate - lowValue;
+        } else {
+            highSearchIndex = medianIndex;
+            highValue = anchors->at(highSearchIndex);
+        }
+
+        // Check to see if the search indices are adjacent or equal
+        if (highSearchIndex - lowSearchIndex <= 1) {
+            *lowIndex = lowSearchIndex;
+            *highIndex = highSearchIndex;
+            return;
+        }
+    }
+
+    throw "Failed to find value";
+}
+
 v_int findDataIndex(Table* table, v_double const &coordinates) {
     int lowIndex = -1, highIndex = -1;
     double coordinate;
@@ -156,7 +216,7 @@ v_int findDataIndex(Table* table, v_double const &coordinates) {
     for (int dimIndex = 0; dimIndex < numDimensions; dimIndex ++) {
         dimension = table->getDimension(dimIndex);
         coordinate = coordinates.at(dimIndex);
-        findDimensionIndices_estimate(dimension, coordinate, &lowIndex, &highIndex);
+        findDimensionIndices_reestimate(dimension, coordinate, &lowIndex, &highIndex);
         assignIndices(dimension, dimIndex, &indices, lowIndex, highIndex);
     }
     return indices;
@@ -308,6 +368,8 @@ v_double Table::reduce(v_int const &lowIndices, v_int const &highIndices, v_doub
 
 v_double Table::reduce(v_double& corners, v_double const &gradients, int dimIndex) {
     Dimension* dimension = getDimension(dimIndex);
+    Integration integration = *dimension->getIntegration();
+    double g = gradients[dimIndex];
 
     v_double pairs;
     pairs.resize(corners.size() / 2);
@@ -319,8 +381,6 @@ v_double Table::reduce(v_double& corners, v_double const &gradients, int dimInde
         if (a == b) {
             pairs[i / 2] = a;
         } else {
-            double g = gradients[dimIndex];
-            Integration integration = *dimension->getIntegration();
             pairs[i / 2] = integration(a, b, g);
         }
     }
@@ -352,7 +412,7 @@ double Table::integrate(v_double const &coordinates) {
 
         int lowIndex = -1, highIndex = -1;
         PROFILE_START("findDimensionIndices");
-        findDimensionIndices_estimate(dimension, coordinate, &lowIndex, &highIndex);
+        findDimensionIndices_reestimate(dimension, coordinate, &lowIndex, &highIndex);
         PROFILE_STOP();
 
         // Clamp to the bounds of the table

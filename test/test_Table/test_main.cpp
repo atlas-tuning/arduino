@@ -101,8 +101,10 @@ TEST_SUITE("Table") {
     dummy_anchors_y->push_back(4);
 
     v_dimension *dimensions = new std::vector<Dimension*>();
-    dimensions->push_back(new Dimension(new Variable(source_x), &LINEAR_INTEGRATION, dummy_anchors_x));
-    dimensions->push_back(new Dimension(new Variable(source_y), &LINEAR_INTEGRATION, dummy_anchors_y));
+    Variable* variable_x = new Variable(source_x);
+    Variable* variable_y = new Variable(source_y);
+    dimensions->push_back(new Dimension(variable_x, &LINEAR_INTEGRATION, dummy_anchors_x));
+    dimensions->push_back(new Dimension(variable_y, &LINEAR_INTEGRATION, dummy_anchors_y));
 
     v_double* table_data = new v_double();
     table_data->push_back(1); // 0,0
@@ -116,74 +118,47 @@ TEST_SUITE("Table") {
     CHECK(result == 3.5);
   }
 
-
-  /**
-   * Table looks like
-   * 
-   *    X    1 1.5 1.6 1.7 4 6
-   *         _________________
-   *  Y 7   |1 2   3   4   5 6|
-   *    9.4 |3 4   5   6   7 8|
-   *    9.5 |9 1   2   3   4 5|
-   *    10  |6 7   8   9   1 2|
-   *       ------------
-   *    And the coordinates would be x=4.5, y=9.5
-   *    This puts you in between 4 and 5
-   *    With linear interpolation is 4.25.
-   * 
-  */
-  TEST_CASE("get() on long two dimensional table") {
-    double source_x = 4.5;
-    double source_y = 9.5;
+  TEST_CASE("get() on 32x32 two dimensional table") {
+    int size = 32;
 
     v_double* dummy_anchors_x = new v_double();
-    dummy_anchors_x->push_back(1);
-    dummy_anchors_x->push_back(1.5);
-    dummy_anchors_x->push_back(1.6);
-    dummy_anchors_x->push_back(1.7);
-    dummy_anchors_x->push_back(4);
-    dummy_anchors_x->push_back(6);
+    for (int x = 0; x < size; x ++) {
+      dummy_anchors_x->push_back(x);
+    }
     
     v_double* dummy_anchors_y = new v_double();
-    dummy_anchors_y->push_back(7);
-    dummy_anchors_y->push_back(9.4);
-    dummy_anchors_y->push_back(9.5);
-    dummy_anchors_y->push_back(10);
+    for (int y = 0; y < size; y ++) {
+      dummy_anchors_y->push_back(y);
+    }
 
     v_dimension *dimensions = new std::vector<Dimension*>();
-    dimensions->push_back(new Dimension(new Variable(source_x), &LINEAR_INTEGRATION, dummy_anchors_x));
-    dimensions->push_back(new Dimension(new Variable(source_y), &LINEAR_INTEGRATION, dummy_anchors_y));
+    TestVariable* variable_x = new TestVariable();
+    TestVariable* variable_y = new TestVariable();
+    dimensions->push_back(new Dimension(variable_x, &LINEAR_INTEGRATION, dummy_anchors_x));
+    dimensions->push_back(new Dimension(variable_y, &LINEAR_INTEGRATION, dummy_anchors_y));
 
     v_double* table_data = new v_double();
-    table_data->push_back(1);
-    table_data->push_back(2);
-    table_data->push_back(3);
-    table_data->push_back(4);
-    table_data->push_back(5);
-    table_data->push_back(6);
-    table_data->push_back(3);
-    table_data->push_back(4);
-    table_data->push_back(5);
-    table_data->push_back(6);
-    table_data->push_back(7);
-    table_data->push_back(8);
-    table_data->push_back(9);
-    table_data->push_back(1);
-    table_data->push_back(2);
-    table_data->push_back(3);
-    table_data->push_back(4);
-    table_data->push_back(5);
-    table_data->push_back(6);
-    table_data->push_back(7);
-    table_data->push_back(8);
-    table_data->push_back(9);
-    table_data->push_back(1);
-    table_data->push_back(2);
+    for (int i = 0; i < size * size; i ++) {
+      table_data->push_back(i);
+    }
 
     std::string table_name = "test_table_2d";
     Table* table = new Table(&table_name, dimensions, table_data);
-    for (int i = 0; i < 500000; i ++) {
-      double result = table->get();
+    for (int x = 0; x < size * 16; x ++) { 
+      for (int y = 0; y < size; y ++) {
+        double x_partial =(double) x / 16.0;
+        int x_min = std::floor(x_partial);
+        double x_remainder = x_partial - x_min;
+        int x_max = std::ceil(x_partial);
+        x_max = std::min(x_max, size - 1);
+        x_min += (y * size);
+        x_max += (y * size);
+        variable_x->set(x_partial);
+        variable_y->set((double) y);
+        double result = table->get();
+        double expected = x_min + ((x_max - x_min) * x_remainder);
+        CHECK(result == expected);
+      }
     }
   }
 
