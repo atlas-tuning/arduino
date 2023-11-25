@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "Table.h"
+#include "Profiler.h"
 
 /**
  * Assigns a value to indices that represents the index of the Table for a given low and high index pair
@@ -191,19 +192,17 @@ int Table::numDimensions() {
 int Table::getDataOffset(v_int const &coordinates) {
     int index = 0;
     int dimensions = this->dimensions->size();
+    int precedingDimensionLength = 1;
 
     for (int i = 0; i < dimensions; i ++) {
         if (i == 0) {
             index += coordinates[i];
         } else {
-            int precedingDimensionLength = 1;
-            for (int d = 0; d < i; d ++) {
-                precedingDimensionLength *= this->getDimension(d)->getSize();
-            }
             index += precedingDimensionLength * coordinates[i];
         }
-    }
 
+        precedingDimensionLength *= this->getDimension(i)->getSize();
+    }
     return index;
 }
 
@@ -243,15 +242,11 @@ int calculateCornerIndex(v_int *cornerIndices) {
     return index;
 }
 
-v_int Table::getDataIndex(v_int const &cornerIndices, v_int const &lowIndices, v_int const &highIndices) {
-    v_int dataIndex;
-
+void Table::getDataIndex(v_int const &cornerIndices, v_int const &lowIndices, v_int const &highIndices, v_int  &dataIndex) {
     for (int d = 0; d < numDimensions(); d ++) {
         int cornerIndex = cornerIndices[d];
         dataIndex.push_back(cornerIndex == 0 ? lowIndices[d] : highIndices[d]);
     }
-
-    return dataIndex;
 }
 
 v_double Table::fill(v_int const &lowIndices, v_int const &highIndices) {
@@ -265,28 +260,50 @@ v_double Table::fill(v_int const &lowIndices, v_int const &highIndices) {
 void Table::fill(v_double& corners, v_int const &lowIndices, v_int const &highIndices) {
     v_int cornerIndices;
     cornerIndices.resize(numDimensions());
-    fill(0, cornerIndices, corners, lowIndices, highIndices);
+    int cornerIndex;
+    fill(0, cornerIndex, cornerIndices, corners, lowIndices, highIndices);
 }
 
-void Table::fill(int dimIndex, v_int &cornerIndices, v_double& corners, v_int const &lowIndices, v_int const &highIndices) {
+void Table::fill(int dimIndex, int cornerIndex, v_int &cornerIndices, v_double& corners,
+                    v_int const &lowIndices, v_int const &highIndices) {
+    int dimensions = numDimensions();
     for (int i = 0; i < 2; i++) {
         if (dimIndex == 0) {
+            PROFILE_START("fill_reset");
             std::fill(cornerIndices.begin(), cornerIndices.end(), 0);
+            cornerIndex = 0;
+            PROFILE_STOP();
         }
         cornerIndices[dimIndex] = i;
-        if (dimIndex == numDimensions() - 1) {
-            v_int dataIndex = getDataIndex(cornerIndices, lowIndices, highIndices);
-            int cornerIndex = calculateCornerIndex(&cornerIndices);
+        cornerIndex = cornerIndex | (i << dimIndex);
+        if (dimIndex == dimensions - 1) {
+            v_int dataIndex = v_int();
+            PROFILE_START("getDataIndex");
+            getDataIndex(cornerIndices, lowIndices, highIndices, dataIndex);
+            PROFILE_STOP();
+            PROFILE_START("getData");
             corners.at(cornerIndex) = getData(dataIndex);
+            PROFILE_STOP();
         } else {
-            fill(dimIndex + 1, cornerIndices, corners, lowIndices, highIndices);
+            fill(dimIndex + 1, cornerIndex, cornerIndices, corners, lowIndices, highIndices);
         }
     }
 }
 
 v_double Table::reduce(v_int const &lowIndices, v_int const &highIndices, v_double const &gradients) {
+
+    PROFILE_START("table.reduce");
+    
+    PROFILE_START("fill");
     v_double corners = fill(lowIndices, highIndices);
-    return reduce(corners, gradients, 0);
+    PROFILE_STOP();
+
+    PROFILE_START("reduce");
+    v_double reduced = reduce(corners, gradients, 0);
+    PROFILE_STOP();
+
+    PROFILE_STOP();
+    return reduced;
 }
 
 v_double Table::reduce(v_double& corners, v_double const &gradients, int dimIndex) {
@@ -308,14 +325,18 @@ v_double Table::reduce(v_double& corners, v_double const &gradients, int dimInde
         }
     }
 
+    v_double result;
     if (pairs.size() == 1) {
-        return pairs;
+        result = pairs;
     } else {
-        return reduce(pairs, gradients, dimIndex + 1);
+        result = reduce(pairs, gradients, dimIndex + 1);
     }
+
+    return result;
 }
 
 double Table::integrate(v_double const &coordinates) {
+    PROFILE_START("table.integrate");
     int numDimensions = this->numDimensions();
     v_int lowIndices, highIndices;
     v_double gradients;
@@ -330,7 +351,9 @@ double Table::integrate(v_double const &coordinates) {
         double coordinate = coordinates.at(dimIndex);
 
         int lowIndex = -1, highIndex = -1;
+        PROFILE_START("findDimensionIndices");
         findDimensionIndices_estimate(dimension, coordinate, &lowIndex, &highIndex);
+        PROFILE_STOP();
 
         // Clamp to the bounds of the table
         lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));
@@ -355,10 +378,12 @@ double Table::integrate(v_double const &coordinates) {
     }
 
     v_double reduced = reduce(lowIndices, highIndices, gradients);
+    PROFILE_STOP();
     return reduced[0];
 }
 
 double Table::get() {
+    PROFILE_START("get");
     v_double coordinates;
     int numDimensions = this->numDimensions();
     coordinates.resize(numDimensions);
@@ -368,5 +393,8 @@ double Table::get() {
         coordinates.at(dim) = dimension->getSource()->get();
     }
 
-    return integrate(coordinates);
+    double value = integrate(coordinates);
+    PROFILE_STOP();
+
+    return value;
 }

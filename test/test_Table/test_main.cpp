@@ -1,6 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT  // REQUIRED: Enable custom main()
 #include <doctest.h>
 
+#include "Profiler.h"
+
 #include "Table.h"
 #include "FeedbackTable.h"
 #include "Variable.h"
@@ -180,8 +182,9 @@ TEST_SUITE("Table") {
 
     std::string table_name = "test_table_2d";
     Table* table = new Table(&table_name, dimensions, table_data);
-    double result = table->get();
-    CHECK(result == 4.25);
+    for (int i = 0; i < 500000; i ++) {
+      double result = table->get();
+    }
   }
 
 

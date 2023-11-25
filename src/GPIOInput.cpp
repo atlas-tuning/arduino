@@ -1,5 +1,6 @@
 #include "GPIOInput.h"
 #include "Reference.h"
+#include "Profiler.h"
 
 class GPIOInput_Value : public Value {
 public:
@@ -46,6 +47,7 @@ GPIOInput::GPIOInput(int pin, int resistorMode, int type, Value* v_gnd, Value* v
 }
 
 int GPIOInput::read() {
+    PROFILE_START("gpio.read");
     double value = reader(pin);
 
     if (v_gnd) {
@@ -63,6 +65,7 @@ int GPIOInput::read() {
     }
 
     last = value;
+    PROFILE_STOP();
     return 1;
 }
 
@@ -71,6 +74,7 @@ double GPIOInput::get() {
 }
 
 int GPIOInput::setup() {
+    PROFILE_START("gpio.setup");
     #if defined(ARDUINO)
     analogReadResolution(12);
 
@@ -93,6 +97,7 @@ int GPIOInput::setup() {
     }
 
     pinMode(pin, mode);
+    PROFILE_STOP();
 
     return 1;
     #else

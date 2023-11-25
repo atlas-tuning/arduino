@@ -1,4 +1,5 @@
 #include "GPIOOutput.h"
+#include "Profiler.h"
 
 #include <chrono>
 
@@ -251,6 +252,7 @@ GPIOOutput::GPIOOutput(Value* value, Value* holdTime, Value* frequency, int pin,
 }
 
 int GPIOOutput::setup() {
+    PROFILE_START("gpio.seup");
     #if defined(ARDUINO)
     int mode;
     switch (this->resistorMode) {
@@ -268,6 +270,7 @@ int GPIOOutput::setup() {
     }
 
     pinMode(this->pin, mode);
+    PROFILE_STOP();
 
     return 1;
     #else
@@ -276,5 +279,8 @@ int GPIOOutput::setup() {
 }
 
 double GPIOOutput::send() {
-    return this->sendMethod();
+    PROFILE_START("gpio.send");
+    double sent = this->sendMethod();
+    PROFILE_STOP();
+    return sent;
 }

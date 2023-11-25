@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include "Profiler.h"
 
 #include "EEPROMStorage.h"
 #include "SPIFFSStorage.h"
@@ -10,6 +11,7 @@
 Program* program;
  
 void setup() {
+    PROFILE_START("setup");
     Serial.begin(115200);
     delay(1000);
 
@@ -39,14 +41,17 @@ void setup() {
         b->setup();
         b->begin();
     }
+    PROFILE_STOP();
  }
 
  void loop() {
+    PROFILE_START("loop");
     #if defined(DEBUG)
     Serial.write("[=======FRAME=======]\n");
     #endif
 
     // Update all inputs
+    PROFILE_START("inputs");
     for (auto& i : *program->getInputs()) {
       i->read();
 
@@ -64,7 +69,9 @@ void setup() {
       Serial.write("\n");
       #endif
     }
+    PROFILE_STOP();
 
+    PROFILE_START("busses");
     // Update all busses and their corresponding inputs
     for (auto& b : *program->getBusses()) {
         for (auto& i : *b->getInputs()) {
@@ -73,8 +80,10 @@ void setup() {
 
         b->update();
     }
+    PROFILE_STOP();
 
     #if defined(DEBUG)
+    PROFILE_START("tables");
     for (auto& t : *program->getTables()) {
       double t_val = t->get();
 
@@ -84,9 +93,11 @@ void setup() {
       Serial.write(std::to_string(t_val).c_str());
       Serial.write("\n");
     }
+    PROFILE_STOP();
     #endif
 
     // Update all outputs (also calls tables)
+    PROFILE_START("outputs");
     for (auto& o : *program->getOutputs()){
       double sent = o->send();
 
@@ -98,8 +109,10 @@ void setup() {
       Serial.write("\n");
       #endif
     }
+    PROFILE_STOP();
 
     #if defined(DEBUG)
     delay(DEBUG_PAUSE);
     #endif
+    PROFILE_STOP();
  }

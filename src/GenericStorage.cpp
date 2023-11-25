@@ -7,6 +7,8 @@
 
 #include "Variable.h"
 
+#include "Profiler.h"
+
 #define VERSION 2
 #define DEBUG 1
 
@@ -357,6 +359,7 @@ int readBusses(char* buffer, int* offs, v_bus* busses, Program* program) {
 
 
 Program* GenericStorage::readProgram() {
+    PROFILE_START("readProgram");
     Serial.write("Reading program data...\n");
     char* buffer;
     int read = this->readProgramData(&buffer);
@@ -365,11 +368,13 @@ Program* GenericStorage::readProgram() {
         Serial.write("Error reading program data: ");
         Serial.write(std::to_string(read).c_str());
         Serial.write("\n");
+        PROFILE_STOP();
         return nullptr;
     }
 
     if (!buffer) {
         Serial.write("Buffer wasn't instantiated!\n");
+        PROFILE_STOP();
         return nullptr;
     }
 
@@ -383,6 +388,7 @@ Program* GenericStorage::readProgram() {
         Serial.write("Unsupported program version ");
         Serial.write(std::to_string(version).c_str());
         Serial.write(".\n");
+        PROFILE_STOP();
         return nullptr;
     }
 
@@ -402,6 +408,8 @@ Program* GenericStorage::readProgram() {
     v_bus* busses = new v_bus();
     Program* program = new Program(inputs, outputs, tables, busses);
     readBusses(buffer, &offs, busses, program);
+
+    PROFILE_STOP();
 
     if (offs != read) {
         Serial.write("Did not reach end of file!\n");

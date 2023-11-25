@@ -25,12 +25,12 @@ public:
     double getData(int offset);
     double getData(v_int const &coordinates);
     int getDataOffset(v_int const &coordinates);
-    v_int getDataIndex(v_int const &cornerIndices, v_int const &lowIndices, v_int const &highIndices);
+    void getDataIndex(v_int const &cornerIndices, v_int const &lowIndices, v_int const &highIndices, v_int &dataIndex);
     v_int getDataIndex(v_double const &coordinates);
 
     v_double fill(v_int const &lowIndices, v_int const &highIndices);
     void fill(v_double& corners, v_int const &lowIndices, v_int const &highIndices);
-    void fill(int dimIndex, v_int &cornerIndices, v_double& corners, v_int const &lowIndices, v_int const &highIndices);
+    void fill(int dimIndex, int cornerIndex, v_int &cornerIndices, v_double& corners, v_int const &lowIndices, v_int const &highIndices);
 
     v_double reduce(v_int const &lowIndices, v_int const &highIndices, v_double const &gradients);
     v_double reduce(v_double& corners, v_double const &gradients, int dimIndex);

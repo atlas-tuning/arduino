@@ -2,6 +2,8 @@
 
 #include "GPIOPulseInput.h"
 
+#include "Profiler.h"
+
 #define DEBUG 1
 
 typedef struct {
@@ -175,6 +177,7 @@ int GPIOPulseInput::read() {
 }
 
 int GPIOPulseInput::setup() {
+    PROFILE_START("gpio.setup");
     #if defined(ARDUINO)
     int _pinMode;
     switch (this->resistorMode) {
@@ -209,6 +212,8 @@ int GPIOPulseInput::setup() {
     }
 
     attachInterruptArg(digitalPinToInterrupt(pin), tick, this, _edgeMode);
+
+    PROFILE_STOP();
 
     #else
     throw "Arduino is not supported";
