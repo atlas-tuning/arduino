@@ -17,8 +17,8 @@
 #define GPIOOUTPUT_TYPE_ANALOG 0x02
 #define GPIOOUTPUT_TYPE_PWM 0x03
 
-typedef std::function<double()> GPIOSendMethod;
-typedef std::function<void(int& pin, double& valu, double& frequency)> GPIOWriter;
+typedef std::function<float()> GPIOSendMethod;
+typedef std::function<void(int& pin, float& valu, float& frequency)> GPIOWriter;
 
 class GPIOOutput : public Output {
 public:
@@ -27,7 +27,7 @@ public:
 
     int setup();
 
-    double send();
+    float send();
 
 private:
     int pin;
@@ -41,8 +41,8 @@ private:
     GPIOSendMethod sendMethod;
     long holdBegin;
 
-    void sendToHw(double& value) {
-        double frequency = -1;
+    void sendToHw(float& value) {
+        float frequency = -1;
         if (this->frequency) {
             frequency = this->frequency->get();
         }

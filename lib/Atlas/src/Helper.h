@@ -7,7 +7,7 @@
 #include "Arduino.h"
 #endif
 
- Table* newTable(std::string* name, v_dimension* dimensions, v_double* dataVector) {
+ Table* newTable(std::string* name, v_dimension* dimensions, v_float* dataVector) {
     #if defined(ARDUINO)
     if (name) {
         Serial.write("Configuring table ");
@@ -41,14 +41,14 @@ v_dimension* newDimensionVec(Dimension* x) {
     return dimensions;
 }
 
-template <size_t N> v_double* newDataVec(const double (&arr)[N]) {
-    v_double* data = new v_double();
+template <size_t N> v_float* newDataVec(const float (&arr)[N]) {
+    v_float* data = new v_float();
     for (int i = 0; i < N; ++i) {
         data->push_back(arr[i]);
     }
     return data;
 }
 
-template <size_t N> Dimension* newDimension(Value* source, Integration* integration, const double (&anchors)[N]) {
+template <size_t N> Dimension* newDimension(Value* source, Integration* integration, const float (&anchors)[N]) {
     return new Dimension(source, integration, newDataVec(anchors));
 }

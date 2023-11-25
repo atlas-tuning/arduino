@@ -81,16 +81,16 @@ float readFloat(char* buffer, int* offs) {
     return value;
 }
 
-v_double* readData(char* buffer, int* offs, int len) {
+v_float* readData(char* buffer, int* offs, int len) {
     #if defined(DEBUG)
-    Serial.write("Reading doubles of length ");
+    Serial.write("Reading floats of length ");
     Serial.write(std::to_string(len).c_str());
     Serial.write(" at offset ");
     Serial.write(std::to_string(*offs).c_str());
     Serial.write("...\n");
     #endif
 
-    v_double* data = new v_double();
+    v_float* data = new v_float();
     for (int i = 0; i < len; i ++) {
         data->push_back(readFloat(buffer, offs));
     }
@@ -245,13 +245,13 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
                     integration = nullptr;
             }
 
-            v_double* data = readData(buffer, offs, num_cols);
+            v_float* data = readData(buffer, offs, num_cols);
             Dimension* dimension = new Dimension(source, integration, data);
             dimensions->push_back(dimension);
         }
 
         uint32_t num_data = readInt(buffer, offs);
-        v_double* data = readData(buffer, offs, num_data);
+        v_float* data = readData(buffer, offs, num_data);
 
         #if defined(DEBUG)
         Serial.write("Adding table ");

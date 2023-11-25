@@ -6,11 +6,11 @@
 
 class Variable: public Value {
     public:
-        Variable(std::string* name, double value);
-        Variable(double value);
+        Variable(std::string* name, float value);
+        Variable(float value);
         
-        double get();
+        float get();
         bool isStatic();
     private:
-        double value;
+        float value;
 };

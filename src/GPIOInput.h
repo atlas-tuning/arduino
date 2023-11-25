@@ -8,13 +8,13 @@
 
 #include "Input.h"
 
-typedef std::function<double(int& pin)> GPIOReader;
+typedef std::function<float(int& pin)> GPIOReader;
 
-static double MAX_12 = (double)(uint32_t)0xFFF;
+static float MAX_12 = (float)(uint32_t)0xFFF;
 
 static GPIOReader GPIO_READER_ANALOG = [](int& pin) { 
 #if defined(ARDUINO)
-    return ((double)analogReadMilliVolts(pin) / (double)1000);
+    return ((float)analogReadMilliVolts(pin) / (float)1000);
 #else
     throw "Arduino is not supported";
     return -1;
@@ -45,13 +45,13 @@ public:
     int setup();
 
     int read();
-    double get();
+    float get();
 
 private:
     int pin;
     int resistorMode;
     GPIOReader reader;
-    double last;
+    float last;
     Value* v_gnd;
     Value* v_ref;
 };

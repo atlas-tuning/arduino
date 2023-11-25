@@ -21,13 +21,13 @@ class Profiler {
 
         long getExecutions();
 
-        double getSelfTime();
-        double getChildTime();
-        double getTotalTime();
+        float getSelfTime();
+        float getChildTime();
+        float getTotalTime();
 
-        double getAvgSelfTime();
-        double getAvgChildTime();
-        double getAvgTotalTime();
+        float getAvgSelfTime();
+        float getAvgChildTime();
+        float getAvgTotalTime();
     protected:
         Profiler* getChild(std::string* name);
         void begin();
@@ -39,7 +39,7 @@ class Profiler {
 
         long beginTimeNanos;
         long executions;
-        double totalTime;
+        float totalTime;
 };
 
 typedef std::vector<Profiler*> v_profiler;

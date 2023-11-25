@@ -75,7 +75,7 @@ uint8_t ledc_next_channel() {
 }
 #endif
 
-static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, double& value, double& frequency) { 
+static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, float& value, float& frequency) { 
     value = max(min(value, 1.0), 0.0);
 #if defined(ESP32)
     // TODO
@@ -87,7 +87,7 @@ static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, double& value, double& frequ
 #endif
 };
 
-static GPIOWriter GPIO_WRITER_PWM = [](int& pin, double& value, double& frequency) {
+static GPIOWriter GPIO_WRITER_PWM = [](int& pin, float& value, float& frequency) {
     if (pin < 0 || pin > SOC_GPIO_PIN_COUNT) {
         return;
     }
@@ -172,7 +172,7 @@ static GPIOWriter GPIO_WRITER_PWM = [](int& pin, double& value, double& frequenc
 #endif
 };
 
-static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, double& value, double& frequency) { 
+static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, float& value, float& frequency) { 
 #if defined(ARDUINO)
     value = max(min(value, 1.0), 0.0);
     if (value == 1.0) {
@@ -218,17 +218,17 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* 
             #endif
             
             if (this->holdBegin > -1) {
-                double holdMs = this->holdTime->get();
+                float holdMs = this->holdTime->get();
                 long holdMicros = (int)(holdMs * 1000.0);
                 if (now > this->holdBegin + holdMicros) {
                     this->holdBegin = -1;
-                    double value = 0;
+                    float value = 0;
                     this->sendToHw(value);
                 } else {
                     // We just continue holding
                 }
             } else {
-                double value = this->value->get();
+                float value = this->value->get();
                 if (value > 0) {
                     this->holdBegin = now;
                     this->sendToHw(value);
@@ -240,7 +240,7 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* 
         };
     } else {
         this->sendMethod = [this]() {
-            double value = this->value->get();
+            float value = this->value->get();
             this->sendToHw(value);
             return this->sent;
         };
@@ -278,9 +278,9 @@ int GPIOOutput::setup() {
     #endif
 }
 
-double GPIOOutput::send() {
+float GPIOOutput::send() {
     PROFILE_START("gpio.send");
-    double sent = this->sendMethod();
+    float sent = this->sendMethod();
     PROFILE_STOP();
     return sent;
 }

@@ -8,7 +8,7 @@ public:
         this->input = input;
       };
       
-      double get() {
+      float get() {
         return input->get();
       };
 
@@ -48,10 +48,10 @@ GPIOInput::GPIOInput(int pin, int resistorMode, int type, Value* v_gnd, Value* v
 
 int GPIOInput::read() {
     PROFILE_START("gpio.read");
-    double value = reader(pin);
+    float value = reader(pin);
 
     if (v_gnd) {
-        double v_gnd_value = v_gnd->get();
+        float v_gnd_value = v_gnd->get();
         value -= v_gnd_value;
 
         if (value < 0) {
@@ -60,7 +60,7 @@ int GPIOInput::read() {
     }
 
     if (v_ref) {
-        double v_ref_value = v_ref->get();
+        float v_ref_value = v_ref->get();
         value = value / v_ref_value;
     }
 
@@ -69,7 +69,7 @@ int GPIOInput::read() {
     return 1;
 }
 
-double GPIOInput::get() {
+float GPIOInput::get() {
     return last;
 }
 

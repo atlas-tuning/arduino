@@ -30,7 +30,7 @@ public:
 
     void handleInterrupt();
 
-    double readFrequency();
+    float readFrequency();
 
 private:
     int pin;

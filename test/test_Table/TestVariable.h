@@ -9,10 +9,10 @@ class TestVariable: public Value {
         TestVariable(std::string* name);
         TestVariable();
         
-        double get();
-        double set(double value);
+        float get();
+        float set(float value);
         
         bool isStatic();
     private:
-        double value;
+        float value;
 };

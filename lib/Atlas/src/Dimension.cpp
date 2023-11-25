@@ -1,6 +1,6 @@
 #include "Dimension.h"
 
-Dimension::Dimension(Value* source, Integration* integration, v_double* anchors) {
+Dimension::Dimension(Value* source, Integration* integration, v_float* anchors) {
     this->source = source;
     this->integration = integration;
     this->anchors = anchors;
@@ -10,7 +10,7 @@ Value* Dimension::getSource() {
     return this->source;
 }
 
-v_double* Dimension::getAnchors() {
+v_float* Dimension::getAnchors() {
     return this->anchors;
 }
 

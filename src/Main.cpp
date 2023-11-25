@@ -61,7 +61,7 @@ void setup() {
       Serial.write(": ");
       Value* value = i->getPrimaryValue();
       if (value) {
-        double i_val = value->get();
+        float i_val = value->get();
         Serial.write(std::to_string(i_val).c_str());
       } else {
         Serial.write("nullptr");
@@ -85,7 +85,7 @@ void setup() {
     #if defined(DEBUG)
     PROFILE_START("tables");
     for (auto& t : *program->getTables()) {
-      double t_val = t->get();
+      float t_val = t->get();
 
       Serial.write("TABLE ");
       Serial.write(t->getName()->c_str());
@@ -99,7 +99,7 @@ void setup() {
     // Update all outputs (also calls tables)
     PROFILE_START("outputs");
     for (auto& o : *program->getOutputs()){
-      double sent = o->send();
+      float sent = o->send();
 
       #if defined(DEBUG)
       Serial.write("OUT   ");

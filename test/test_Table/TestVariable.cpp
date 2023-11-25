@@ -13,12 +13,12 @@ bool TestVariable::isStatic() {
     return true; // Not really
 }
 
-double TestVariable::get() {
+float TestVariable::get() {
     return this->value;
 }
 
-double TestVariable::set(double value) {
-    double old = this->value;
+float TestVariable::set(float value) {
+    float old = this->value;
     this->value = value;
     return old;
 }

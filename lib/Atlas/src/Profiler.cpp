@@ -82,32 +82,32 @@ long Profiler::getExecutions() {
     return this->executions;
 }
 
-double Profiler::getSelfTime() {
+float Profiler::getSelfTime() {
     return getTotalTime() - getChildTime();
 }
 
-double Profiler::getChildTime() {
-    double time = 0.0;
+float Profiler::getChildTime() {
+    float time = 0.0;
     for (auto& child : *children) {
         time += child->getTotalTime();
     }
     return time;
 }
 
-double Profiler::getTotalTime() {
+float Profiler::getTotalTime() {
     return totalTime;
 }
 
-double Profiler::getAvgSelfTime() {
-    return getSelfTime() / (double) getExecutions();
+float Profiler::getAvgSelfTime() {
+    return getSelfTime() / (float) getExecutions();
 }
 
-double Profiler::getAvgChildTime() {
-    return getChildTime() / (double) getExecutions();
+float Profiler::getAvgChildTime() {
+    return getChildTime() / (float) getExecutions();
 }
 
-double Profiler::getAvgTotalTime() {
-    return getTotalTime() / (double) getExecutions();
+float Profiler::getAvgTotalTime() {
+    return getTotalTime() / (float) getExecutions();
 }
 
 Profiler* active_profiler = new Profiler("main");

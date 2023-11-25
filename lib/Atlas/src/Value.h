@@ -11,7 +11,7 @@ class Value {
       Value();
    
       virtual bool isStatic() = 0;
-      virtual double get() = 0;
+      virtual float get() = 0;
 
       std::string* getName();
       

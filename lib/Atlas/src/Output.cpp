@@ -8,7 +8,7 @@ Output::Output() {
 
 }
 
-double Output::getLastSent() {
+float Output::getLastSent() {
     return this->sent;
 }
 

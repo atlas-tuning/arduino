@@ -14,7 +14,7 @@
  * @param highIndex the "high" index within the dimension that represents the upper bound to assign against
 */
 void assignIndices(Dimension* dimension, int dimensionIndex, v_int* indices, int lowIndex, int highIndex) {
-    v_double* anchors = dimension->getAnchors();
+    v_float* anchors = dimension->getAnchors();
     
     // Clamp indices to the bounds of the dimension provided
     lowIndex = std::max(0, std::min((int)anchors->size() - 1, lowIndex));
@@ -24,8 +24,8 @@ void assignIndices(Dimension* dimension, int dimensionIndex, v_int* indices, int
         // If the low and high indices are the same, then the answer is easy; pick either one.
         (*indices)[dimensionIndex] = highIndex;
     } else {
-        double lowValue = anchors->at(lowIndex);
-        double highValue = anchors->at(highIndex);
+        float lowValue = anchors->at(lowIndex);
+        float highValue = anchors->at(highIndex);
 
         if (lowValue == highValue) {
             // If the values stored in the anchors are the same, this is an easy answer; pick either one.
@@ -51,11 +51,11 @@ void assignIndices(Dimension* dimension, int dimensionIndex, v_int* indices, int
  * @param lowIndex the low index to set for the given coordinate, when found in the dimension
  * @param highIndex the high index to set for the given coordinate, when found in the dimension.
 */
-void findDimensionIndices_linear(Dimension* dimension, double coordinate,
+void findDimensionIndices_linear(Dimension* dimension, float coordinate,
                                 int* lowIndex, int* highIndex) {
-    v_double* anchors = dimension->getAnchors();
+    v_float* anchors = dimension->getAnchors();
     for (int index = 0; index < anchors->size(); index++) {
-        double anchor = anchors->at(index);
+        float anchor = anchors->at(index);
 
         if (anchor <= coordinate) {
             *lowIndex = index;
@@ -93,18 +93,18 @@ void findDimensionIndices_linear(Dimension* dimension, double coordinate,
  * @param lowIndex the low index to set for the given coordinate, when found in the dimension
  * @param highIndex the high index to set for the given coordinate, when found in the dimension.
 */
-void findDimensionIndices_estimate(Dimension* dimension, double coordinate,
+void findDimensionIndices_estimate(Dimension* dimension, float coordinate,
                                     int* lowIndex, int* highIndex) {
-    v_double* anchors = dimension->getAnchors();
+    v_float* anchors = dimension->getAnchors();
     if (anchors->size() == 1) {
         *lowIndex = *highIndex = 0;
         return;
     }
 
-    double lowValue = anchors->front();
-    double highValue = anchors->back();
+    float lowValue = anchors->front();
+    float highValue = anchors->back();
 
-    double gradient = (coordinate - lowValue) / (highValue - lowValue);
+    float gradient = (coordinate - lowValue) / (highValue - lowValue);
     int lastIndex = anchors->size() - 1;
 
     if (gradient <= 0) {
@@ -132,8 +132,8 @@ void findDimensionIndices_estimate(Dimension* dimension, double coordinate,
             *highIndex = std::min(index + 1, lastIndex);
         }
 
-        double anchorLow = anchors->at(*lowIndex);
-        double anchorHigh = anchors->at(*highIndex);
+        float anchorLow = anchors->at(*lowIndex);
+        float anchorHigh = anchors->at(*highIndex);
 
         if (anchorLow <= coordinate && anchorHigh >= coordinate) {
             break;
@@ -151,9 +151,9 @@ void findDimensionIndices_estimate(Dimension* dimension, double coordinate,
  * @param lowIndex the low index to set for the given coordinate, when found in the dimension
  * @param highIndex the high index to set for the given coordinate, when found in the dimension.
 */
-void findDimensionIndices_reestimate(Dimension* dimension, double coordinate,
+void findDimensionIndices_reestimate(Dimension* dimension, float coordinate,
                                     int* lowIndex, int* highIndex) {
-    v_double* anchors = dimension->getAnchors();
+    v_float* anchors = dimension->getAnchors();
     if (anchors->size() == 1) {
         *lowIndex = *highIndex = 0;
         return;
@@ -162,8 +162,8 @@ void findDimensionIndices_reestimate(Dimension* dimension, double coordinate,
     int lastIndex = anchors->size() - 1;
     int lowSearchIndex = 0;
     int highSearchIndex = lastIndex;
-    double lowValue = anchors->at(lowSearchIndex);
-    double highValue = anchors->at(highSearchIndex);
+    float lowValue = anchors->at(lowSearchIndex);
+    float highValue = anchors->at(highSearchIndex);
 
     if (lowValue >= coordinate) {
         *lowIndex = *highIndex = 0; // clamp to beginning of dimension
@@ -173,14 +173,14 @@ void findDimensionIndices_reestimate(Dimension* dimension, double coordinate,
         return;
     }
 
-    double coordinate_minus_low_value = coordinate - lowValue;
+    float coordinate_minus_low_value = coordinate - lowValue;
     while (true) {
-        double gradient = coordinate_minus_low_value / (highValue - lowValue);
+        float gradient = coordinate_minus_low_value / (highValue - lowValue);
         int medianIndex = lowSearchIndex + (gradient * (highSearchIndex - lowSearchIndex));
         if (medianIndex <= lowSearchIndex) {
             medianIndex = lowSearchIndex + 1;
         }
-        double medianValue = anchors->at(medianIndex);
+        float medianValue = anchors->at(medianIndex);
         if (medianValue == coordinate) {
             // Easily found by direct match
             *lowIndex = *highIndex = medianIndex;
@@ -205,9 +205,9 @@ void findDimensionIndices_reestimate(Dimension* dimension, double coordinate,
     throw "Failed to find value";
 }
 
-v_int findDataIndex(Table* table, v_double const &coordinates) {
+v_int findDataIndex(Table* table, v_float const &coordinates) {
     int lowIndex = -1, highIndex = -1;
-    double coordinate;
+    float coordinate;
     Dimension* dimension;
     v_int indices;
 
@@ -222,7 +222,7 @@ v_int findDataIndex(Table* table, v_double const &coordinates) {
     return indices;
 }
 
-Table::Table(std::string* name, v_dimension *dimensions, std::vector<double> *data): Value(name) {
+Table::Table(std::string* name, v_dimension *dimensions, std::vector<float> *data): Value(name) {
     this->dimensions = dimensions;
     this->data = data;
 }
@@ -266,31 +266,31 @@ int Table::getDataOffset(v_int const &coordinates) {
     return index;
 }
 
-double Table::getData(int index) {
+float Table::getData(int index) {
     return this->data->at(index);
 }
 
-double Table::getData(v_int const &coordinates) {
+float Table::getData(v_int const &coordinates) {
     int index = this->getDataOffset(coordinates);
     return this->getData(index);
 }
 
-double Table::setData(int index, double value) {
-    double old = this->data->at(index);
+float Table::setData(int index, float value) {
+    float old = this->data->at(index);
     this->data->at(index) = value;
     return old;
 }
 
-double Table::setData(v_int const &coordinates, double value) {
+float Table::setData(v_int const &coordinates, float value) {
     int index = this->getDataOffset(coordinates);
     return this->setData(index, value);
 }
 
-v_int Table::getDataIndex(v_double const &coordinates) {
+v_int Table::getDataIndex(v_float const &coordinates) {
     return findDataIndex(this, coordinates);
 }
 
-double Table::setData(v_double const &coordinates, double value) {
+float Table::setData(v_float const &coordinates, float value) {
     return this->setData(getDataIndex(coordinates), value);
 }
 
@@ -309,22 +309,22 @@ void Table::getDataIndex(v_int const &cornerIndices, v_int const &lowIndices, v_
     }
 }
 
-v_double Table::fill(v_int const &lowIndices, v_int const &highIndices) {
+v_float Table::fill(v_int const &lowIndices, v_int const &highIndices) {
     int cornerCount = pow(2, numDimensions());
-    v_double corners;
+    v_float corners;
     corners.resize(cornerCount);
     fill(corners, lowIndices, highIndices);
     return corners;
 }
 
-void Table::fill(v_double& corners, v_int const &lowIndices, v_int const &highIndices) {
+void Table::fill(v_float& corners, v_int const &lowIndices, v_int const &highIndices) {
     v_int cornerIndices;
     cornerIndices.resize(numDimensions());
     int cornerIndex;
     fill(0, cornerIndex, cornerIndices, corners, lowIndices, highIndices);
 }
 
-void Table::fill(int dimIndex, int cornerIndex, v_int &cornerIndices, v_double& corners,
+void Table::fill(int dimIndex, int cornerIndex, v_int &cornerIndices, v_float& corners,
                     v_int const &lowIndices, v_int const &highIndices) {
     int dimensions = numDimensions();
     for (int i = 0; i < 2; i++) {
@@ -350,33 +350,33 @@ void Table::fill(int dimIndex, int cornerIndex, v_int &cornerIndices, v_double& 
     }
 }
 
-v_double Table::reduce(v_int const &lowIndices, v_int const &highIndices, v_double const &gradients) {
+v_float Table::reduce(v_int const &lowIndices, v_int const &highIndices, v_float const &gradients) {
 
     PROFILE_START("table.reduce");
     
     PROFILE_START("fill");
-    v_double corners = fill(lowIndices, highIndices);
+    v_float corners = fill(lowIndices, highIndices);
     PROFILE_STOP();
 
     PROFILE_START("reduce");
-    v_double reduced = reduce(corners, gradients, 0);
+    v_float reduced = reduce(corners, gradients, 0);
     PROFILE_STOP();
 
     PROFILE_STOP();
     return reduced;
 }
 
-v_double Table::reduce(v_double& corners, v_double const &gradients, int dimIndex) {
+v_float Table::reduce(v_float& corners, v_float const &gradients, int dimIndex) {
     Dimension* dimension = getDimension(dimIndex);
     Integration integration = *dimension->getIntegration();
-    double g = gradients[dimIndex];
+    float g = gradients[dimIndex];
 
-    v_double pairs;
+    v_float pairs;
     pairs.resize(corners.size() / 2);
 
     for (int i = 0; i < corners.size(); i += 2) {
-        double a = corners[i];
-        double b = corners[i+1];
+        float a = corners[i];
+        float b = corners[i+1];
 
         if (a == b) {
             pairs[i / 2] = a;
@@ -385,7 +385,7 @@ v_double Table::reduce(v_double& corners, v_double const &gradients, int dimInde
         }
     }
 
-    v_double result;
+    v_float result;
     if (pairs.size() == 1) {
         result = pairs;
     } else {
@@ -395,11 +395,11 @@ v_double Table::reduce(v_double& corners, v_double const &gradients, int dimInde
     return result;
 }
 
-double Table::integrate(v_double const &coordinates) {
+float Table::integrate(v_float const &coordinates) {
     PROFILE_START("table.integrate");
     int numDimensions = this->numDimensions();
     v_int lowIndices, highIndices;
-    v_double gradients;
+    v_float gradients;
     lowIndices.resize(numDimensions);
     highIndices.resize(numDimensions);
     gradients.resize(numDimensions);
@@ -407,8 +407,8 @@ double Table::integrate(v_double const &coordinates) {
     // Identify the low and high portion of the cells
     for (int dimIndex = 0; dimIndex < numDimensions; dimIndex ++) {
         Dimension* dimension = getDimension(dimIndex);
-        v_double* anchors = dimension->getAnchors();
-        double coordinate = coordinates.at(dimIndex);
+        v_float* anchors = dimension->getAnchors();
+        float coordinate = coordinates.at(dimIndex);
 
         int lowIndex = -1, highIndex = -1;
         PROFILE_START("findDimensionIndices");
@@ -424,8 +424,8 @@ double Table::integrate(v_double const &coordinates) {
             lowIndices[dimIndex] = lowIndex;
             highIndices[dimIndex] = highIndex;
         } else {
-            double lowValue = anchors->at(lowIndex);
-            double highValue = anchors->at(highIndex);
+            float lowValue = anchors->at(lowIndex);
+            float highValue = anchors->at(highIndex);
             lowIndices[dimIndex] = lowIndex;
             highIndices[dimIndex] = highIndex;
 
@@ -437,14 +437,14 @@ double Table::integrate(v_double const &coordinates) {
         }
     }
 
-    v_double reduced = reduce(lowIndices, highIndices, gradients);
+    v_float reduced = reduce(lowIndices, highIndices, gradients);
     PROFILE_STOP();
     return reduced[0];
 }
 
-double Table::get() {
+float Table::get() {
     PROFILE_START("get");
-    v_double coordinates;
+    v_float coordinates;
     int numDimensions = this->numDimensions();
     coordinates.resize(numDimensions);
     for (int dim = 0; dim < numDimensions; dim ++) 
@@ -453,7 +453,7 @@ double Table::get() {
         coordinates.at(dim) = dimension->getSource()->get();
     }
 
-    double value = integrate(coordinates);
+    float value = integrate(coordinates);
     PROFILE_STOP();
 
     return value;

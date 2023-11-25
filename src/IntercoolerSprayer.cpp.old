@@ -142,7 +142,7 @@ GPIOInput* newInput(std::string* name, int pin, int resistorMode, int type) {
       }));
     tables.push_back(std::unique_ptr<Table>(temp_delta_target));
 
-    double temp_limit = 1000.0;
+    float temp_limit = 1000.0;
     Table* temp_delta = newTable(new std::string("temp_delta_f"),
       newDimensionVec(
         newDimension(temp_manifold_c, &LINEAR_INTEGRATION, { 
@@ -236,7 +236,7 @@ GPIOInput* newInput(std::string* name, int pin, int resistorMode, int type) {
       i->read();
       #if defined(DEBUG)
       Serial.write("SENS  ");
-      double i_val = i->getPrimaryValue()->get();
+      float i_val = i->getPrimaryValue()->get();
       Serial.write(i->getName()->c_str());
       Serial.write(": ");
       Serial.write(std::to_string(i_val).c_str());
@@ -247,7 +247,7 @@ GPIOInput* newInput(std::string* name, int pin, int resistorMode, int type) {
 
     #if defined(DEBUG)
     for (auto& t : tables){
-      double t_val = t->get();
+      float t_val = t->get();
       Serial.write("TABLE ");
       Serial.write(t->getName()->c_str());
       Serial.write(": ");
@@ -258,7 +258,7 @@ GPIOInput* newInput(std::string* name, int pin, int resistorMode, int type) {
 
     // Update all outputs (also calls tables)
     for (auto& o : outputs){
-      double sent = o->send();
+      float sent = o->send();
 
       #if defined(DEBUG)
       Serial.write("OUT   ");

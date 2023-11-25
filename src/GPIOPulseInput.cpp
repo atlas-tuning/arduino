@@ -120,7 +120,7 @@ public:
         this->input = input;
       };
       
-      double get() {
+      float get() {
         return input->readFrequency();
       };
 
@@ -147,10 +147,10 @@ GPIOPulseInput::GPIOPulseInput(int pin, int resistorMode, int edge, int window):
     GPIOPulseInput(nullptr, pin, resistorMode, edge, window) {
 }
 
-double GPIOPulseInput::readFrequency() {
+float GPIOPulseInput::readFrequency() {
     long now = platform_get_micros();
     long delta = now - lastPulse;
-    double average = this->counter->avg();
+    float average = this->counter->avg();
     if (average == 0.0) {
         return 0.0;
     } else if (delta >= this->counter->size() * average * 1000000.0) {
@@ -163,7 +163,7 @@ double GPIOPulseInput::readFrequency() {
 void GPIOPulseInput::handleInterrupt() {
     long now = platform_get_micros();
     long delta = now - lastPulse;
-    double value = (double)delta / 1000000.0; // 1uS
+    float value = (float)delta / 1000000.0; // 1uS
     if (lastPulse <= 0) {
         goto track; // skip adding this increment
     }

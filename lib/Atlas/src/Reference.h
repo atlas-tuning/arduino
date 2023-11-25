@@ -8,11 +8,11 @@
 
 class Reference: Value {
 public:
-    Reference(std::string* name, double (*callback)(void));
-    Reference(double (*callback)(void));
+    Reference(std::string* name, float (*callback)(void));
+    Reference(float (*callback)(void));
       
-    double get();
+    float get();
     bool isStatic();
 private:
-    double (*callback)(void);
+    float (*callback)(void);
 };

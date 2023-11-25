@@ -11,13 +11,13 @@ class Output {
 
         virtual int setup() = 0;
 
-        virtual double send() = 0;
+        virtual float send() = 0;
 
-        double getLastSent();
+        float getLastSent();
 
         std::string* getName();
     protected:
-      double sent;
+      float sent;
     private:
       std::string* name;
 };

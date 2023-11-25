@@ -2,12 +2,12 @@ class Counter {
     public:
         Counter(int window);
 
-        void increment(double value);
+        void increment(float value);
 
         void clear();
 
-        double avg();
-        double sum();
+        float avg();
+        float sum();
 
         int size();
         int getWindow();
@@ -15,5 +15,5 @@ class Counter {
     private:
         int window;
         int count;
-        double buffer;
+        float buffer;
 };

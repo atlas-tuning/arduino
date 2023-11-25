@@ -6,16 +6,16 @@
 
 class Dimension {
 public:
-    Dimension(Value* source, Integration* integration, v_double* anchors);
+    Dimension(Value* source, Integration* integration, v_float* anchors);
 
     Value* getSource();
     Integration* getIntegration();
-    v_double* getAnchors();
+    v_float* getAnchors();
     int getSize();
 private:
     Value *source;
     Integration *integration;
-    v_double *anchors;
+    v_float *anchors;
 };
 
 typedef std::vector<Dimension*> v_dimension;
