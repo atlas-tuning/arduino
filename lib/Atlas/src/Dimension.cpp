@@ -21,3 +21,11 @@ Integration* Dimension::getIntegration() {
 int Dimension::getSize() {
     return getAnchors()->size();
 }
+
+int Dimension::getLastLookupIndex() {
+    return lastLookupIndex;
+}
+
+void Dimension::setLastLookupIndex(int lastLookupIndex) {
+    this->lastLookupIndex = lastLookupIndex;
+}

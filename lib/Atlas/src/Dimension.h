@@ -12,10 +12,13 @@ public:
     Integration* getIntegration();
     v_float* getAnchors();
     int getSize();
+    int getLastLookupIndex();
+    void setLastLookupIndex(int lastLookupIndex);
 private:
     Value *source;
     Integration *integration;
     v_float *anchors;
+    int lastLookupIndex;
 };
 
 typedef std::vector<Dimension*> v_dimension;

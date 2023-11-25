@@ -146,6 +146,19 @@ void findDimensionIndices_estimate(Dimension* dimension, float coordinate,
 }
 
 /*
+ * Continually divides a dimension in two by first estimating an index to divide at using the
+ * provided coordinate to calculate a gradient between the active low and high anchors. This
+ * repeats until the low and high anchor indices are either equal or are adjacent. This sets
+ * this algorithm apart from the "estimate" algorithm as the estimation is continually repeated
+ * until convergence on the desired dimension anchors, whereas the aforementioned algorithm
+ * only performs estimation once and performs a linear scan from that point. This algorithm
+ * should have better performance on larger tables with non-linear anchors, but has
+ * shown to meet or exceed the performance of the linear algorithm in testing on linear tables.
+ * 
+ * Additionally, this function will remember the last low anchor index and reuse it for faster
+ * future calculations. This is particularly useful for automotive applications where inputs
+ * change gradually between table processing.
+ * 
  * @param dimension the dimension to search
  * @param coordinate the coordinate to search for
  * @param lowIndex the low index to set for the given coordinate, when found in the dimension
@@ -174,12 +187,8 @@ void findDimensionIndices_reestimate(Dimension* dimension, float coordinate,
     }
 
     float coordinate_minus_low_value = coordinate - lowValue;
+    int medianIndex = dimension->getLastLookupIndex();
     while (true) {
-        float gradient = coordinate_minus_low_value / (highValue - lowValue);
-        int medianIndex = lowSearchIndex + (gradient * (highSearchIndex - lowSearchIndex));
-        if (medianIndex <= lowSearchIndex) {
-            medianIndex = lowSearchIndex + 1;
-        }
         float medianValue = anchors->at(medianIndex);
         if (medianValue == coordinate) {
             // Easily found by direct match
@@ -198,7 +207,14 @@ void findDimensionIndices_reestimate(Dimension* dimension, float coordinate,
         if (highSearchIndex - lowSearchIndex <= 1) {
             *lowIndex = lowSearchIndex;
             *highIndex = highSearchIndex;
+            dimension->setLastLookupIndex(lowSearchIndex);
             return;
+        }
+
+        float gradient = coordinate_minus_low_value / (highValue - lowValue);
+        medianIndex = lowSearchIndex + (gradient * (highSearchIndex - lowSearchIndex));
+        if (medianIndex <= lowSearchIndex) {
+            medianIndex = lowSearchIndex + 1;
         }
     }
 
