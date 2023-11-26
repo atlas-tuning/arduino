@@ -4,7 +4,6 @@ Dimension::Dimension(Value* source, Integration* integration, v_float* anchors) 
     this->source = source;
     this->integration = integration;
     this->anchors = anchors;
-    this->lastLookupIndex = anchors->size() / 2;
 }
 
 Value* Dimension::getSource() {

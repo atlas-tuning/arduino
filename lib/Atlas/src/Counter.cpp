@@ -6,7 +6,7 @@ Counter::Counter(int window) {
     this->count = 0;
 }
 
-void Counter::increment(double value) {
+void Counter::increment(float value) {
     if (this->count >= this->window) {
         this->buffer -= this->avg();
         this->buffer += value;
@@ -21,15 +21,15 @@ void Counter::clear() {
     this->count = 0;
 }
 
-double Counter::avg() {
+float Counter::avg() {
     if (this->count <= 0) {
         return 0;
     }
 
-    return this->buffer / (double)this->count;
+    return this->buffer / (float)this->count;
 }
 
-double Counter::sum() {
+float Counter::sum() {
     return this->buffer;
 }
 

@@ -2,8 +2,9 @@
 
 #include "GPIOPulseInput.h"
 
-#include "PlatformTime.h"
 #include "Profiler.h"
+
+#define DEBUG 1
 
 typedef struct {
     bool enabled = false;
@@ -104,6 +105,15 @@ int attach(int pin, int edgeMode, GPIOPulseInput* input) {
     return -1;
 }
 
+long platform_get_micros() {
+    #if defined(ARDUINO)
+    return micros();
+    #else
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    #endif
+}
+
 class GPIOPulseInput_Frequency : public Value {
 public:
       GPIOPulseInput_Frequency(std::string* name, GPIOPulseInput* input): Value(name) {
@@ -121,23 +131,6 @@ private:
     GPIOPulseInput* input;
 };
 
-class GPIOPulseInput_Delta : public Value {
-public:
-      GPIOPulseInput_Delta(std::string* name, GPIOPulseInput* input): Value(name) {
-        this->input = input;
-      };
-      
-      float get() {
-        return input->readFrequencyDelta();
-      };
-
-      bool isStatic() {
-        return false;
-      };
-private:
-    GPIOPulseInput* input;
-};
-
 GPIOPulseInput::GPIOPulseInput(std::string* name, int pin, int resistorMode, int edge, int window):
  Input(name) {
     this->pin = pin;
@@ -145,13 +138,9 @@ GPIOPulseInput::GPIOPulseInput(std::string* name, int pin, int resistorMode, int
     this->edge = edge;
     this->counter = new Counter(window);
     this->lastPulse = 0;
-    this->lastInterval = 0;
 
     GPIOPulseInput_Frequency* frequency = new GPIOPulseInput_Frequency(new std::string(*this->getName() + "_freq"), this);
     this->values.push_back(std::unique_ptr<Value>(frequency));
-
-    GPIOPulseInput_Delta* delta = new GPIOPulseInput_Delta(new std::string(*this->getName() + "_delta"), this);
-    this->values.push_back(std::unique_ptr<Value>(delta));
 }
 
 GPIOPulseInput::GPIOPulseInput(int pin, int resistorMode, int edge, int window):
@@ -161,54 +150,26 @@ GPIOPulseInput::GPIOPulseInput(int pin, int resistorMode, int edge, int window):
 float GPIOPulseInput::readFrequency() {
     long now = platform_get_micros();
     long delta = now - lastPulse;
-    double averageInterval = this->counter->avg();
-    if (averageInterval == 0.0) {
+    float average = this->counter->avg();
+    if (average == 0.0) {
         return 0.0;
-    } else if (delta >= this->counter->size() * averageInterval * 1000000.0) {
-        return 0.0;
-    } else {
-        return 1.0 / averageInterval;
-    }
-}
-
-float GPIOPulseInput::readFrequencyDelta() {
-    long now = platform_get_micros();
-    long delta = now - lastPulse;
-    double lastInterval = this->lastInterval;
-    double totalInterval = this->counter->sum();
-    int windowSize = this->counter->size();
-    double averageInterval = totalInterval / (double)windowSize;
-    double frequency;
-    
-    if (averageInterval == 0.0) {
-        return 0.0;
-    } else if (delta >= windowSize * averageInterval * 1000000.0) {
+    } else if (delta >= this->counter->size() * average * 1000000.0) {
         return 0.0;
     } else {
-        frequency = 1.0 / averageInterval;
+        return 1.0 / average;
     }
-
-    totalInterval -= lastInterval;
-    averageInterval = totalInterval / (double)(windowSize-1);
-
-    return 1.0 - (averageInterval / lastInterval);
 }
 
 void GPIOPulseInput::handleInterrupt() {
-    // WARNING: Don't use floats in an ISR routine
-    // Doubles are not nearly as nice as hardware-accelerated floats (FPU), but they keep us stable
-    // See: https://www.reddit.com/r/esp32/comments/lj2nkx/just_discovered_that_you_cant_use_floats_in_isr/
-    // TODO see if we can use FPU state for reimplementation of float: https://esp32.com/viewtopic.php?t=1292
     long now = platform_get_micros();
-    long lastPulse = this->lastPulse;
-    double intervalSeconds = (double)(now - lastPulse) / 1000000.0; // resolution of 1uS
+    long delta = now - lastPulse;
+    float value = (float)delta / 1000000.0; // 1uS
     if (lastPulse <= 0) {
         goto track; // skip adding this increment
     }
-    this->counter->increment(intervalSeconds);
+    this->counter->increment(value);
 track:
-    this->lastPulse = now;
-    this->lastInterval = intervalSeconds;
+    lastPulse = now;
 }
 
 int GPIOPulseInput::read() {

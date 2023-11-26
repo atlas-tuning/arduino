@@ -1,62 +1,15 @@
 #include "GPIOInput.h"
 #include "Reference.h"
 #include "Profiler.h"
-#include "PlatformTime.h"
 
 class GPIOInput_Value : public Value {
 public:
       GPIOInput_Value(std::string* name, GPIOInput* input): Value(name) {
         this->input = input;
       };
-
-      GPIOInput_Value(const char* name, GPIOInput* input): Value(new std::string(name)) {
-        this->input = input;
-      };
       
       float get() {
         return input->get();
-      };
-
-      bool isStatic() {
-        return false;
-      };
-private:
-    GPIOInput* input;
-};
-
-class GPIOInput_HoldTime : public Value {
-public:
-      GPIOInput_HoldTime(std::string* name, GPIOInput* input): Value(name) {
-        this->input = input;
-      };
-
-      GPIOInput_HoldTime(const char* name, GPIOInput* input): Value(new std::string(name)) {
-        this->input = input;
-      };
-      
-      float get() {
-        return input->getHoldTime();
-      };
-
-      bool isStatic() {
-        return false;
-      };
-private:
-    GPIOInput* input;
-};
-
-class GPIOInput_Delta : public Value {
-public:
-      GPIOInput_Delta(std::string* name, GPIOInput* input): Value(name) {
-        this->input = input;
-      };
-
-      GPIOInput_Delta(const char* name, GPIOInput* input): Value(new std::string(name)) {
-        this->input = input;
-      };
-      
-      float get() {
-        return input->getDelta();
       };
 
       bool isStatic() {
@@ -84,15 +37,9 @@ GPIOInput::GPIOInput(std::string* name, int pin, int resistorMode, int type, Val
     }
 
     GPIOReader reader = this->reader;
-
     GPIOInput_Value* value = new GPIOInput_Value(getName(), this);
+
     values.push_back(std::unique_ptr<Value>(value));
-    
-    GPIOInput_HoldTime* holdTime = new  GPIOInput_HoldTime(new std::string(*this->getName() + "_holdTime"), this);
-    values.push_back(std::unique_ptr<Value>(holdTime));
-    
-    GPIOInput_Delta* delta = new GPIOInput_Delta(new std::string(*this->getName() + "_delta"), this);
-    values.push_back(std::unique_ptr<Value>(delta));
 }
 
 GPIOInput::GPIOInput(int pin, int resistorMode, int type, Value* v_gnd, Value* v_ref) 
@@ -117,27 +64,13 @@ int GPIOInput::read() {
         value = value / v_ref_value;
     }
 
-    this->delta = this->last - value;
-
-    if (last != value) {
-        lastChangeMicros = platform_get_micros();
-        this->last = value;
-    }
-
+    last = value;
     PROFILE_STOP();
     return 1;
 }
 
 float GPIOInput::get() {
     return last;
-}
-
-float GPIOInput::getHoldTime() {
-    return (float)(platform_get_micros() - lastChangeMicros) / 1000000.0f;
-}
-
-float GPIOInput::getDelta() {
-    return delta;
 }
 
 int GPIOInput::setup() {
@@ -164,8 +97,6 @@ int GPIOInput::setup() {
     }
 
     pinMode(pin, mode);
-    lastChangeMicros = platform_get_micros();
-
     PROFILE_STOP();
 
     return 1;

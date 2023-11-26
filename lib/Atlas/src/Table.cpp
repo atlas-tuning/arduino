@@ -436,7 +436,7 @@ float Table::integrate(v_float const &coordinates) {
         highIndex = std::max(0, std::min((int)anchors->size() - 1, highIndex));
 
         if (lowIndex == highIndex) {
-            gradients[dimIndex] = 1.0f;
+            gradients[dimIndex] = 1.0;
             lowIndices[dimIndex] = lowIndex;
             highIndices[dimIndex] = highIndex;
         } else {
@@ -446,7 +446,7 @@ float Table::integrate(v_float const &coordinates) {
             highIndices[dimIndex] = highIndex;
 
             if (lowValue == highValue) {
-                gradients[dimIndex] = 1.0f;
+                gradients[dimIndex] = 1.0;
             } else {
                 gradients[dimIndex] = (coordinate - lowValue) / (highValue - lowValue);
             }

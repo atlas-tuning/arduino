@@ -46,16 +46,12 @@ public:
 
     int read();
     float get();
-    float getHoldTime();
-    float getDelta();
 
 private:
     int pin;
     int resistorMode;
-    long lastChangeMicros = 0;
     GPIOReader reader;
     float last;
-    float delta;
     Value* v_gnd;
     Value* v_ref;
 };

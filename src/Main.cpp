@@ -58,14 +58,13 @@ void setup() {
       #if defined(DEBUG)
       Serial.write("SENS  ");
       Serial.write(i->getName()->c_str());
-      Serial.write(":");
-      for (auto& i : *i->getValues()) {
-        Value* value = i.get();
+      Serial.write(": ");
+      Value* value = i->getPrimaryValue();
+      if (value) {
         float i_val = value->get();
-        Serial.write(" ");
-        Serial.write(value->getName()->c_str());
-        Serial.write("=");
         Serial.write(std::to_string(i_val).c_str());
+      } else {
+        Serial.write("nullptr");
       }
       Serial.write("\n");
       #endif
@@ -86,10 +85,11 @@ void setup() {
     #if defined(DEBUG)
     PROFILE_START("tables");
     for (auto& t : *program->getTables()) {
+      float t_val = t->get();
+
       Serial.write("TABLE ");
       Serial.write(t->getName()->c_str());
       Serial.write(": ");
-      float t_val = t->get();
       Serial.write(std::to_string(t_val).c_str());
       Serial.write("\n");
     }
@@ -99,15 +99,12 @@ void setup() {
     // Update all outputs (also calls tables)
     PROFILE_START("outputs");
     for (auto& o : *program->getOutputs()){
+      float sent = o->send();
+
       #if defined(DEBUG)
       Serial.write("OUT   ");
       Serial.write(o->getName()->c_str());
       Serial.write(": ");
-      #endif
-      
-      float sent = o->send();
-
-      #if defined(DEBUG)
       Serial.write(std::to_string(sent).c_str());
       Serial.write("\n");
       #endif

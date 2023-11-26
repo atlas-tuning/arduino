@@ -31,7 +31,6 @@ public:
     void handleInterrupt();
 
     float readFrequency();
-    float readFrequencyDelta();
 
 private:
     int pin;
@@ -39,6 +38,5 @@ private:
     int edge;
 
     long lastPulse;
-    double lastInterval;
     Counter* counter;
 };
