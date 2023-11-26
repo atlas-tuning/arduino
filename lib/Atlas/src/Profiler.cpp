@@ -74,7 +74,7 @@ void Profiler::begin() {
 void Profiler::end() {
     auto endTimeNanos = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     auto duration = endTimeNanos - beginTimeNanos;
-    this->totalTime += (duration / 1000000000.0);
+    this->totalTime += (duration / 1000000000.0f);
     this->executions += 1;
 }
 
@@ -87,7 +87,7 @@ float Profiler::getSelfTime() {
 }
 
 float Profiler::getChildTime() {
-    float time = 0.0;
+    float time = 0.0f;
     for (auto& child : *children) {
         time += child->getTotalTime();
     }

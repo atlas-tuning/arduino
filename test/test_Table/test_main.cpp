@@ -30,6 +30,27 @@ TEST_SUITE("Table") {
     float result = table->get();
     CHECK(result == expected);
   }
+  TEST_CASE("get() on simple subtraction table") {
+    float expected = 1.0f;
+
+    Variable* dummy_source = new Variable(expected);
+    v_float* dummy_anchors = new v_float();
+    dummy_anchors->push_back(0.0f);
+    dummy_anchors->push_back(5.0f);
+
+    v_float* table_data = new v_float();
+    table_data->push_back(5.0f);
+    table_data->push_back(0.0f);
+    std::string table_name = "test_table_1d";
+
+    Dimension* dimension_x = new Dimension(dummy_source, &LINEAR_INTEGRATION, dummy_anchors);
+    v_dimension *dimensions = new std::vector<Dimension*>();
+    dimensions->push_back(dimension_x);
+
+    Table* table = new Table(&table_name, dimensions, table_data);
+    float result = table->get();
+    CHECK(result == 4.0f);
+  }
 
   TEST_CASE("get() on clamped dimensional table") {
     float expected = 0.0;

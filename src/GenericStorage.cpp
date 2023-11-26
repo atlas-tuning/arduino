@@ -210,45 +210,66 @@ int readInputs(char* buffer, int* offs, v_input* inputs) {
     return *offs;
 }
 
+int readDimensions(char* buffer, int* offs, v_table* tables, v_input* inputs, v_dimension* dimensions) {
+    uint16_t num_dimensions = readShort(buffer, offs);
+    for (int j = 0; j < num_dimensions; j++) {
+        uint16_t sourceIndex = readShort(buffer, offs);
+        Value* source;
+        if (sourceIndex & 0x8000 == 0x8000) {
+            uint16_t tableIndex = sourceIndex & 0x7FFF;
+            source = tables->at(tableIndex);
+        } else {
+            Input* input = inputs->at(sourceIndex);
+            uint8_t subValueIndex = readByte(buffer, offs);
+            source = input->getValues()->at(subValueIndex).get();
+        }
+        
+        uint8_t flags = readByte(buffer, offs);
+        uint8_t integrationIndex = (flags >> 6) & 0x3;
+        uint8_t num_cols = flags & 0x3F;
+        Integration* integration;
+        switch (integrationIndex) {
+            case 1:
+                integration = &LINEAR_INTEGRATION;
+                break;
+            case 2:
+                integration = &FLOOR_INTEGRATION;
+                break;
+            case 3:
+                integration = &CEILING_INTEGRATION;
+                break;
+            default:
+                integration = nullptr;
+        }
+
+        v_float* data = readData(buffer, offs, num_cols);
+        Dimension* dimension = new Dimension(source, integration, data);
+
+        #if defined(DEBUG)
+        Serial.write("Adding dimension ");
+        Serial.write(std::to_string(j).c_str());
+        Serial.write(", source=");
+        Serial.write(source->getName()->c_str());
+        Serial.write(", integration=");
+        Serial.write(std::to_string(integrationIndex).c_str());
+        Serial.write(", cols=");
+        Serial.write(std::to_string(num_cols).c_str());
+        Serial.write("...\n");
+        #endif
+
+        dimensions->push_back(dimension);
+    }
+
+    return *offs;
+}
+
 int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
     uint16_t num_tables = readShort(buffer, offs);
     for (int i = 0; i < num_tables; i++) {
         std::string* name = readStdString(buffer, offs);
         
         v_dimension* dimensions = new v_dimension();
-        uint16_t num_dimensions = readShort(buffer, offs);
-        for (int j = 0; j < num_dimensions; j++) {
-            uint16_t sourceIndex = readShort(buffer, offs);
-            Value* source;
-            if (sourceIndex & 0x8000 == 0x8000) {
-                uint16_t tableIndex = sourceIndex & 0x7FFF;
-                source = tables->at(tableIndex);
-            } else {
-                source = inputs->at(sourceIndex)->getPrimaryValue();
-            }
-            
-            uint8_t flags = readByte(buffer, offs);
-            uint8_t integrationIndex = (flags >> 6) & 0x3;
-            uint8_t num_cols = flags & 0x3F;
-            Integration* integration;
-            switch (integrationIndex) {
-                case 1:
-                    integration = &LINEAR_INTEGRATION;
-                    break;
-                case 2:
-                    integration = &FLOOR_INTEGRATION;
-                    break;
-                case 3:
-                    integration = &CEILING_INTEGRATION;
-                    break;
-                default:
-                    integration = nullptr;
-            }
-
-            v_float* data = readData(buffer, offs, num_cols);
-            Dimension* dimension = new Dimension(source, integration, data);
-            dimensions->push_back(dimension);
-        }
+        readDimensions(buffer, offs, tables, inputs, dimensions);
 
         uint32_t num_data = readInt(buffer, offs);
         v_float* data = readData(buffer, offs, num_data);
@@ -279,28 +300,28 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
         int tableIndex = readShort(buffer, offs);
         int holdTableIndex = readShort(buffer, offs);
 
+        int updateFrequencyTableIndex = readShort(buffer, offs);
+        Value* updateFrequency = nullptr;
+        if (updateFrequencyTableIndex < 0xFFFF) {
+            updateFrequency = tables->at(updateFrequencyTableIndex);
+        } else {
+            float frequency_value = readFloat(buffer, offs);
+            if (frequency_value > 0.0f) {
+                updateFrequency = new Variable(frequency_value);
+            }
+        }
+
+        Value* pwmFrequency = nullptr;
         int frequencyTableIndex = 0xFFFF;
         if (type == GPIOOUTPUT_TYPE_PWM) {
             frequencyTableIndex = readShort(buffer, offs);
+            if (frequencyTableIndex < 0xFFFF) {
+                pwmFrequency = tables->at(frequencyTableIndex);
+            } else {
+                uint32_t frequency_value = readInt(buffer, offs);
+                pwmFrequency = new Variable((float) frequency_value);
+            }
         }
-
-        #if defined(DEBUG)
-        Serial.write("Adding output ");
-        Serial.write(name->c_str());
-        Serial.write(", pin=");
-        Serial.write(std::to_string(pin).c_str());
-        Serial.write(", mode=");
-        Serial.write(std::to_string(mode).c_str());
-        Serial.write(", type=");
-        Serial.write(std::to_string(type).c_str());
-        Serial.write(", table=");
-        Serial.write(std::to_string(tableIndex).c_str());
-        Serial.write(", holdTable=");
-        Serial.write(std::to_string(holdTableIndex).c_str());
-        Serial.write(", freqTable=");
-        Serial.write(std::to_string(frequencyTableIndex).c_str());
-        Serial.write("...\n");
-        #endif
 
         Table* table;
         if (tableIndex < 0xFFFF) {
@@ -316,20 +337,31 @@ int readOutputs(char* buffer, int* offs, v_output* outputs, v_table* tables) {
             holdTime = nullptr;
         }
 
-        Value* frequency;
-        if (type == GPIOOUTPUT_TYPE_PWM) {
-            if (frequencyTableIndex < 0xFFFF) {
-                frequency = tables->at(frequencyTableIndex);
-            } else {
-                uint32_t frequency_value = readInt(buffer, offs);
-                frequency = new Variable(frequency_value);
-            }
-        }
+        #if defined(DEBUG)
+        Serial.write("Adding output ");
+        Serial.write(name->c_str());
+        Serial.write(", pin=");
+        Serial.write(std::to_string(pin).c_str());
+        Serial.write(", mode=");
+        Serial.write(std::to_string(mode).c_str());
+        Serial.write(", type=");
+        Serial.write(std::to_string(type).c_str());
+        Serial.write(", table=");
+        Serial.write(std::to_string(tableIndex).c_str());
+        Serial.write(", holdTable=");
+        Serial.write(std::to_string(holdTableIndex).c_str());
+        Serial.write(", updateFreqTable=");
+        Serial.write(std::to_string(updateFrequencyTableIndex).c_str());
+        Serial.write(", pwmFreqTable=");
+        Serial.write(std::to_string(frequencyTableIndex).c_str());
+        Serial.write("...\n");
+        #endif
 
         GPIOOutput* output = new GPIOOutput(name,
                                             table,
                                             holdTime,
-                                            frequency,
+                                            pwmFrequency,
+                                            updateFrequency,
                                             pin, mode, type);
         outputs->push_back(output);
     }

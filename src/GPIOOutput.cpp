@@ -76,7 +76,7 @@ uint8_t ledc_next_channel() {
 #endif
 
 static GPIOWriter GPIO_WRITER_ANALOG = [](int& pin, float& value, float& frequency) { 
-    value = max(min(value, 1.0), 0.0);
+    value = max(min(value, 1.0f), 0.0f);
 #if defined(ESP32)
     // TODO
 #elif defined(ARDUINO)
@@ -92,7 +92,7 @@ static GPIOWriter GPIO_WRITER_PWM = [](int& pin, float& value, float& frequency)
         return;
     }
 
-    value = max(min(value, 1.0), 0.0);
+    value = max(min(value, 1.0f), 0.0f);
 
 #if defined(ESP32)
     esp32_ledc_channel_config* channel = &pin_to_channel[pin];
@@ -174,7 +174,7 @@ static GPIOWriter GPIO_WRITER_PWM = [](int& pin, float& value, float& frequency)
 
 static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, float& value, float& frequency) { 
 #if defined(ARDUINO)
-    value = max(min(value, 1.0), 0.0);
+    value = max(min(value, 1.0f), 0.0f);
     if (value == 1.0) {
         digitalWrite(pin, 1);
     } else {
@@ -185,12 +185,15 @@ static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, float& value, float& freque
 #endif
 };
 
-GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* frequency, int pin,
-                        int resistorMode, int type): Output(name) {
+GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* frequency,
+                     Value* updateFrequency,
+                     int pin, int resistorMode, int type): Output(name) {
     this->value = value;
     this->pin = pin;
     this->resistorMode = resistorMode;
     this->frequency = frequency;
+    this->updateFrequency = updateFrequency;
+    this->lastUpdate = 0;
 
     switch(type) {
         case GPIOOUTPUT_TYPE_ANALOG:
@@ -240,6 +243,16 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* 
         };
     } else {
         this->sendMethod = [this]() {
+            if (this->updateFrequency != nullptr) {
+                long now = platform_get_micros();
+                float frequency = this->updateFrequency->get();
+                float secondsPerUpdate = 1.0f / frequency;
+                long wait = (long)(secondsPerUpdate * 1000000.0);
+                if (now - this->lastUpdate < wait) {
+                    return this->sent;
+                }
+            }
+
             float value = this->value->get();
             this->sendToHw(value);
             return this->sent;
@@ -247,8 +260,10 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* 
     }
 }
 
-GPIOOutput::GPIOOutput(Value* value, Value* holdTime, Value* frequency, int pin, int resistorMode, int type):
-    GPIOOutput(nullptr, value, holdTime, frequency, pin, resistorMode, type) {
+GPIOOutput::GPIOOutput(Value* value, Value* holdTime, Value* frequency, 
+                     Value* updateFrequency, 
+                     int pin, int resistorMode, int type):
+    GPIOOutput(nullptr, value, holdTime, frequency, updateFrequency, pin, resistorMode, type) {
 }
 
 int GPIOOutput::setup() {
