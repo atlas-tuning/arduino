@@ -12,6 +12,7 @@ public:
     Table(std::string* name, v_dimension *dimensions, std::vector<float> *data);
 
     float get();
+    float get_stateless();
     bool isStatic();
     int numDimensions();
 
@@ -36,6 +37,7 @@ public:
     v_float reduce(v_float& corners, v_float const &gradients, int dimIndex);
 
     virtual float integrate(v_float const &coordinates);
+    virtual float integrate_stateless(v_float const &coordinates);
 
 private:
     v_dimension *dimensions;

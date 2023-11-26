@@ -458,6 +458,10 @@ float Table::integrate(v_float const &coordinates) {
     return reduced[0];
 }
 
+float Table::integrate_stateless(v_float const &coordinates) {
+    return integrate(coordinates);
+}
+
 float Table::get() {
     PROFILE_START("get");
     v_float coordinates;
@@ -470,6 +474,23 @@ float Table::get() {
     }
 
     float value = integrate(coordinates);
+    PROFILE_STOP();
+
+    return value;
+}
+
+float Table::get_stateless() {
+    PROFILE_START("get");
+    v_float coordinates;
+    int numDimensions = this->numDimensions();
+    coordinates.resize(numDimensions);
+    for (int dim = 0; dim < numDimensions; dim ++) 
+    {
+        auto dimension = this->getDimension(dim);
+        coordinates.at(dim) = dimension->getSource()->get();
+    }
+
+    float value = integrate_stateless(coordinates);
     PROFILE_STOP();
 
     return value;

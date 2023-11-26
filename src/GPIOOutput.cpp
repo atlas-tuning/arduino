@@ -174,8 +174,7 @@ static GPIOWriter GPIO_WRITER_PWM = [](int& pin, float& value, float& frequency)
 
 static GPIOWriter GPIO_WRITER_DIGITAL = [](int& pin, float& value, float& frequency) { 
 #if defined(ARDUINO)
-    value = max(min(value, 1.0f), 0.0f);
-    if (value == 1.0) {
+    if (value >= 1.0f) {
         digitalWrite(pin, 1);
     } else {
         digitalWrite(pin, 0);
@@ -222,7 +221,7 @@ GPIOOutput::GPIOOutput(std::string *name, Value* value, Value* holdTime, Value* 
             
             if (this->holdBegin > -1) {
                 float holdMs = this->holdTime->get();
-                long holdMicros = (int)(holdMs * 1000.0);
+                long holdMicros = (int)(holdMs * 1000.0f);
                 if (now > this->holdBegin + holdMicros) {
                     this->holdBegin = -1;
                     float value = 0;

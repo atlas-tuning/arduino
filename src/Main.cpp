@@ -3,6 +3,8 @@
 
 #include "EEPROMStorage.h"
 #include "SPIFFSStorage.h"
+
+#include "Preferences.h"
  
 #define PROGRAM_FILE "/program.bin"
 #define DEBUG_PAUSE 500
@@ -89,7 +91,7 @@ void setup() {
       Serial.write("TABLE ");
       Serial.write(t->getName()->c_str());
       Serial.write(": ");
-      float t_val = t->get();
+      float t_val = t->get_stateless();
       Serial.write(std::to_string(t_val).c_str());
       Serial.write("\n");
     }

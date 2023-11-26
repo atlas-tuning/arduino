@@ -5,6 +5,9 @@
 #include "GPIOOutput.h"
 #include "CANBus.h"
 
+#include "MemoryStateTable.h"
+#include "NVSStateTable.h"
+
 #include "Variable.h"
 
 #include "Profiler.h"
@@ -223,7 +226,7 @@ int readDimensions(char* buffer, int* offs, v_table* tables, v_input* inputs, v_
             uint8_t subValueIndex = readByte(buffer, offs);
             source = input->getValues()->at(subValueIndex).get();
         }
-        
+
         uint8_t flags = readByte(buffer, offs);
         uint8_t integrationIndex = (flags >> 6) & 0x3;
         uint8_t num_cols = flags & 0x3F;
@@ -267,6 +270,7 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
     uint16_t num_tables = readShort(buffer, offs);
     for (int i = 0; i < num_tables; i++) {
         std::string* name = readStdString(buffer, offs);
+        uint8_t type = readByte(buffer, offs);
         
         v_dimension* dimensions = new v_dimension();
         readDimensions(buffer, offs, tables, inputs, dimensions);
@@ -277,12 +281,27 @@ int readTables(char* buffer, int* offs, v_table* tables, v_input* inputs) {
         #if defined(DEBUG)
         Serial.write("Adding table ");
         Serial.write(name->c_str());
+        Serial.write(", type=");
+        Serial.write(std::to_string(type).c_str());
         Serial.write(", data=");
         Serial.write(std::to_string(num_data).c_str());
         Serial.write("...\n");
         #endif
 
-        Table* table = new Table(name, dimensions, data);
+        Table* table;
+        switch (type) {
+            case 0x1:
+                table = new Table(name, dimensions, data);
+                break;
+            case 0x2:
+                table = new MemoryStateTable(name, dimensions, data);
+                break;
+            case 0x3:
+                table = new NVSStateTable(name, dimensions, data);
+                break;
+            default:
+                throw "Unknown table type";
+        }
         tables->push_back(table);
     }
 
