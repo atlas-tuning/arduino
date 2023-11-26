@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Output.h"
+#include "PlatformTime.h"
 
 #if defined(ARDUINO)
 #include <Arduino.h>
@@ -22,8 +23,8 @@ typedef std::function<void(int& pin, float& valu, float& frequency)> GPIOWriter;
 
 class GPIOOutput : public Output {
 public:
-    GPIOOutput(std::string* name, Value* value, Value* holdTime, Value* frequency, int pin, int resistorMode, int type);
-    GPIOOutput(Value* value, Value* holdTime, Value* frequency, int pin, int resistorMode, int type);
+    GPIOOutput(std::string* name, Value* value, Value* holdTime, Value* frequency, Value* updateFrequency, int pin, int resistorMode, int type);
+    GPIOOutput(Value* value, Value* holdTime, Value* frequency,  Value* updateFrequency, int pin, int resistorMode, int type);
 
     int setup();
 
@@ -36,10 +37,12 @@ private:
     Value* value;
     Value* holdTime;
     Value* frequency;
+    Value* updateFrequency;
     GPIOWriter writer;
 
     GPIOSendMethod sendMethod;
     long holdBegin;
+    long lastUpdate;
 
     void sendToHw(float& value) {
         float frequency = -1;
@@ -47,6 +50,7 @@ private:
             frequency = this->frequency->get();
         }
         this->writer(this->pin, value, frequency);
+        this->lastUpdate = platform_get_micros();
         this->sent = value;
     };
 
