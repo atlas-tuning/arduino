@@ -8,7 +8,6 @@
  
 #define PROGRAM_FILE "/program.bin"
 #define DEBUG_PAUSE 500
-#define DEBUG 1
 
 Program* program;
  
@@ -44,6 +43,8 @@ void setup() {
         b->begin();
     }
     PROFILE_STOP();
+
+    Serial.write("Program setup complete.\n");
  }
 
  void loop() {

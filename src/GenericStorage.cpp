@@ -1,3 +1,5 @@
+#include <bitset>
+
 #include "GenericStorage.h"
 
 #include "GPIOPulseInput.h"
@@ -13,7 +15,8 @@
 #include "Profiler.h"
 
 #define VERSION 2
-#define DEBUG 1
+
+typedef std::bitset<CHAR_BIT * sizeof(uint16_t)> ShortBits;
 
 GenericStorage::GenericStorage() {
 }
@@ -22,11 +25,17 @@ char read(char* buffer, int* offs) {
     #if defined(DEBUG)
     Serial.write("Reading char at offset ");
     Serial.write(std::to_string(*offs).c_str());
-    Serial.write("...\n");
+    Serial.write(": ");
     #endif
 
     uint8_t val = buffer[*offs];
     *offs += 1;
+
+    #if defined(DEBUG)
+    Serial.write(std::to_string((char) val).c_str());
+    Serial.write(".\n");
+    #endif
+
     return val;
 }
 
@@ -34,10 +43,16 @@ uint8_t readByte(char* buffer, int* offs) {
     #if defined(DEBUG)
     Serial.write("Reading byte at offset ");
     Serial.write(std::to_string(*offs).c_str());
-    Serial.write("...\n");
+    Serial.write(": ");
     #endif
 
     uint8_t val = buffer[*offs];
+
+    #if defined(DEBUG)
+    Serial.write(std::to_string(val).c_str());
+    Serial.write(".\n");
+    #endif
+
     *offs += 1;
     return val;
 }
@@ -46,20 +61,27 @@ uint16_t readShort(char* buffer, int* offs) {
     #if defined(DEBUG)
     Serial.write("Reading short at offset ");
     Serial.write(std::to_string(*offs).c_str());
-    Serial.write("...\n");
+    Serial.write(": ");
     #endif
 
     uint8_t val_high = buffer[*offs];
     uint8_t val_low = buffer[*offs+1];
     *offs += 2;
-    return val_low | (val_high << 8);
+    uint16_t value = val_low | (val_high << 8);
+
+    #if defined(DEBUG)
+    Serial.write(std::to_string(value).c_str());
+    Serial.write(".\n");
+    #endif
+
+    return value;
 }
 
 uint32_t readInt(char* buffer, int* offs) {
     #if defined(DEBUG)
     Serial.write("Reading int at offset ");
     Serial.write(std::to_string(*offs).c_str());
-    Serial.write("...\n");
+    Serial.write(": ");
     #endif
 
     uint8_t val_a = buffer[*offs];
@@ -67,19 +89,31 @@ uint32_t readInt(char* buffer, int* offs) {
     uint8_t val_c = buffer[*offs+2];
     uint8_t val_d = buffer[*offs+3];
     *offs += 4;
-    return val_d | (val_c << 8) | (val_b << 16) | (val_a << 24);
+    uint32_t value = val_d | (val_c << 8) | (val_b << 16) | (val_a << 24);
+
+    #if defined(DEBUG)
+    Serial.write(std::to_string(value).c_str());
+    Serial.write(".\n");
+    #endif
+
+    return value;
 }
 
 float readFloat(char* buffer, int* offs) {
     #if defined(DEBUG)
     Serial.write("Reading float at offset ");
     Serial.write(std::to_string(*offs).c_str());
-    Serial.write("...\n");
+    Serial.write(": ");
     #endif
 
     float value = *(float*)(buffer + *offs);
     int ivalue = *(int*)(buffer + *offs);
     *offs += 4;
+
+    #if defined(DEBUG)
+    Serial.write(std::to_string(value).c_str());
+    Serial.write(".\n");
+    #endif
 
     return value;
 }
@@ -218,12 +252,31 @@ int readDimensions(char* buffer, int* offs, v_table* tables, v_input* inputs, v_
     for (int j = 0; j < num_dimensions; j++) {
         uint16_t sourceIndex = readShort(buffer, offs);
         Value* source;
-        if (sourceIndex & 0x8000 == 0x8000) {
+        if (ShortBits(sourceIndex).test(15)) {
             uint16_t tableIndex = sourceIndex & 0x7FFF;
+            if (tables->size() <= tableIndex) {
+                Serial.write("Referenced unknown table with index=");
+                Serial.write(std::to_string(tableIndex).c_str());
+                Serial.write(".\n");
+                return -1;
+            }
             source = tables->at(tableIndex);
         } else {
+            if (inputs->size() <= sourceIndex) {
+                Serial.write("Referenced unknown input with index=");
+                Serial.write(std::to_string(sourceIndex).c_str());
+                Serial.write(".\n");
+                return -1;
+            }
             Input* input = inputs->at(sourceIndex);
+            
             uint8_t subValueIndex = readByte(buffer, offs);
+            if (input->getValues()->size() <= subValueIndex) {
+                Serial.write("Referenced unknown subinput with index=");
+                Serial.write(std::to_string(subValueIndex).c_str());
+                Serial.write(".\n");
+                return -1;
+            }
             source = input->getValues()->at(subValueIndex).get();
         }
 
