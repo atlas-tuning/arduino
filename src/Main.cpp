@@ -54,7 +54,7 @@ void setup() {
 
   Serial.setRxBufferSize(1024);
   Serial.setTxBufferSize(1024);
-  Serial.begin(115200);
+  Serial.begin(921600);
 
   CAN0.setCANPins(GPIO_NUM_4, GPIO_NUM_5);
 }
@@ -279,7 +279,7 @@ void handleRxFrame(CAN_FRAME &frame) {
     __TX_frame.data[1] = 0x0;
     __TX_frame.data[2] = 0x0;
 
-    twai_transmit(&__TX_frame, pdMS_TO_TICKS(4));
+    twai_transmit(&__TX_frame, pdMS_TO_TICKS(1000));
 
     // Handle first frame
     if (rx_buffer.count(frame.id)) {
@@ -356,8 +356,6 @@ void handleRxFrame(CAN_FRAME &frame) {
     rx_buffer.erase(rx_frame->id);
     free(rx_frame->data);
     free(rx_frame);
-
-    digitalWrite(TX_LED, HIGH);
   }
 
   
@@ -373,8 +371,6 @@ void handleRxFrame(CAN_FRAME &frame) {
   Serial.flush(true);
 
   free(packet);
-
-  digitalWrite(RX_LED, HIGH);
 }
 
 bool handleTxBuffer() {
@@ -437,15 +433,18 @@ bool handleTxBuffer() {
     __TX_frame.data[can_position + frame_position] = frame->data[frame->position + frame_position];
   }
 
-  esp_err_t res = twai_transmit(&__TX_frame, pdMS_TO_TICKS(0));
+  esp_err_t res = twai_transmit(&__TX_frame, pdMS_TO_TICKS(1000));
   switch (res)
   {
     case ESP_ERR_TIMEOUT:
+    case ESP_FAIL:
       return false;
     case ESP_OK:
       break;
     default:
       Serial.write(0xFE);
+      Serial.flush(true);
+      break;
   }
 
   frame->position += window;
@@ -469,6 +468,8 @@ bool handleTxBuffer() {
 }
 
 void loop() {
+  digitalWrite(SYS_LED, HIGH);
+
   if (Serial.available() > 0) {
     readSerialCommand();
   }
@@ -478,5 +479,11 @@ void loop() {
     handleRxFrame(frame);
   }
 
+  
+  digitalWrite(RX_LED, rx_buffer.size() > 0);
+  digitalWrite(TX_LED, tx_buffer.size() > 0);
+
   handleTxBuffer();
+
+  digitalWrite(SYS_LED, LOW);
 }
