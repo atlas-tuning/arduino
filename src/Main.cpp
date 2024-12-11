@@ -54,7 +54,7 @@ void setup() {
 
   Serial.setRxBufferSize(1024);
   Serial.setTxBufferSize(1024);
-  Serial.begin(921600);
+  Serial.begin(115200);
 
   CAN0.setCANPins(GPIO_NUM_4, GPIO_NUM_5);
 }
