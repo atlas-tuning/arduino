@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <esp32_can.h>
 
-#include <list>
+#include <deque>
 #include <map>
 
 uint firmware_version = 0x01;
@@ -31,7 +31,7 @@ struct ISOTPFrame {
   mutable ushort length;
 };
 
-std::list<ISOTPFrame*> tx_buffer;
+std::deque<ISOTPFrame*> tx_buffer;
 std::map<uint, ISOTPFrame*> rx_buffer;
 
 bool rx_lit = false;
@@ -173,7 +173,7 @@ void readSerialCommand() {
     while (read < ready) {
       int b = Serial.read();
       if (b < 0) {
-        break;
+        return;
       }
 
       tx_frame->data[tx_frame->available + read] = b;
@@ -374,6 +374,7 @@ void handleRxFrame(CAN_FRAME &frame) {
 }
 
 bool handleTxBuffer() {
+  digitalWrite(RX_LED, 1);
   if (tx_buffer.size() == 0) {
     return false;
   }

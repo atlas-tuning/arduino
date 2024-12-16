@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        ".fantomasignore": "ignore",
         "string": "cpp",
         "array": "cpp",
         "*.tcc": "cpp",
@@ -83,7 +84,8 @@
         "__nullptr": "cpp",
         "__string": "cpp",
         "compare": "cpp",
-        "concepts": "cpp"
+        "concepts": "cpp",
+        "forward_list": "cpp"
     },
     "FSharp.suggestGitignore": false
 }
