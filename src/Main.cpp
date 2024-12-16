@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <esp32_can.h>
 
-#include <vector>
+#include <list>
 #include <map>
 
 uint firmware_version = 0x01;
@@ -31,7 +31,7 @@ struct ISOTPFrame {
   mutable ushort length;
 };
 
-std::vector<ISOTPFrame*> tx_buffer;
+std::list<ISOTPFrame*> tx_buffer;
 std::map<uint, ISOTPFrame*> rx_buffer;
 
 bool rx_lit = false;
@@ -252,7 +252,7 @@ void handleRxFrame(CAN_FRAME &frame) {
         next_frame_time = esp_timer_get_time() + st_min;
         break;
       case 0x2:
-        tx_buffer.erase(tx_buffer.begin());
+        tx_buffer.pop_front();
         free(tx_frame->data);
         free(tx_frame);
         return;
@@ -450,7 +450,7 @@ bool handleTxBuffer() {
   frame->position += window;
 
   if (frame->position >= frame->length) {
-    tx_buffer.erase(tx_buffer.begin());
+    tx_buffer.pop_front();
     free(frame->data);
     free(frame);
     return true;
